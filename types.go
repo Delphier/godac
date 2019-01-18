@@ -1,0 +1,12 @@
+package sqlexpress
+
+import "database/sql"
+
+// DB is a interface of *sql.DB and *sql.Tx.
+type DB interface {
+	Query(query string, args ...interface{}) (*sql.Rows, error)
+	Exec(query string, args ...interface{}) (sql.Result, error)
+}
+
+// Map is a shortcut for map[string]interface{}.
+type Map map[string]interface{}
