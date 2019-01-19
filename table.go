@@ -64,13 +64,13 @@ func (table *Table) Select(db DB, clauses string, args ...interface{}) ([]Map, e
 }
 
 // Insert execute sql INSERT INTO.
-func (table *Table) Insert(db DB, values Map) (sql.Result, error) {
+func (table *Table) Insert(db DB, record Map) (sql.Result, error) {
 	var cols []string
 	var placeholders []string
 	var args []interface{}
 
 	for _, col := range table.ColumnsForInsert {
-		value, exist := values[col]
+		value, exist := record[col]
 		if exist {
 			cols = append(cols, col)
 			placeholders = append(placeholders, placeholder)
@@ -84,19 +84,19 @@ func (table *Table) Insert(db DB, values Map) (sql.Result, error) {
 }
 
 // Update execute sql UPDATE.
-func (table *Table) Update(db DB, values Map) (sql.Result, error) {
+func (table *Table) Update(db DB, record Map) (sql.Result, error) {
 	var sets []string
 	var args []interface{}
 
 	for _, col := range table.ColumnsForUpdate {
-		value, exist := values[col]
+		value, exist := record[col]
 		if exist {
 			sets = append(sets, col+" = "+placeholder)
 			args = append(args, value)
 		}
 	}
 
-	whereQuery, whereArgs, err := table.WherePrimaryKey(values)
+	whereQuery, whereArgs, err := table.WherePrimaryKey(record)
 	if err != nil {
 		return nil, err
 	}
@@ -107,8 +107,8 @@ func (table *Table) Update(db DB, values Map) (sql.Result, error) {
 }
 
 // Delete execute sql DELETE;
-func (table *Table) Delete(db DB, values Map) (sql.Result, error) {
-	query, args, err := table.WherePrimaryKey(values)
+func (table *Table) Delete(db DB, record Map) (sql.Result, error) {
+	query, args, err := table.WherePrimaryKey(record)
 	if err != nil {
 		return nil, err
 	}
@@ -117,11 +117,11 @@ func (table *Table) Delete(db DB, values Map) (sql.Result, error) {
 	return db.Exec(query, args...)
 }
 
-// WherePrimaryKey get where sql by primary key values.
-func (table *Table) WherePrimaryKey(values Map) (query string, args []interface{}, err error) {
+// WherePrimaryKey get where sql by primary key in record.
+func (table *Table) WherePrimaryKey(record Map) (query string, args []interface{}, err error) {
 	keys := append([]string{}, table.PrimaryKey...)
 	for _, key := range keys {
-		value, exist := values[key]
+		value, exist := record[key]
 		if !exist {
 			err = fmt.Errorf("key %s not exists", key)
 			return
