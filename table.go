@@ -135,6 +135,62 @@ func (table *Table) WherePrimaryKey(record Map) (query string, args []interface{
 	return
 }
 
+// Count query SELECT COUNT(*).
+func (table *Table) Count(db DB, where string, args ...interface{}) (int64, error) {
+	query := fmt.Sprintf("SELECT COUNT(*) FROM %s", table.Name)
+	if where != "" {
+		query += " WHERE " + where
+	}
+
+	row := db.QueryRow(query, args...)
+	var count int64
+	if err := row.Scan(&count); err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// CountValue query SELECT COUNT(*) by column value. used for detect duplicate value.
+func (table *Table) CountValue(db DB, column string, value interface{}, where string, args ...interface{}) (int64, error) {
+	condition := "= ?"
+	if value == nil {
+		condition = "IS NULL"
+	} else {
+		switch value.(type) {
+		case string:
+			value = strings.TrimSpace(value.(string))
+		default:
+		}
+		args = append([]interface{}{value}, args...)
+	}
+	condition = column + " " + condition
+	if where == "" {
+		where = condition
+	} else {
+		where += condition + " AND " + where
+	}
+
+	return table.Count(db, where, args...)
+}
+
+// CountValueByRecord query SELECT COUNT(*) by record.
+func (table *Table) CountValueByRecord(db DB, column string, record Map, excludeThisRecord bool, where string, args ...interface{}) (int64, error) {
+	if excludeThisRecord {
+		queryPK, argsPK, err := table.WherePrimaryKey(record)
+		if err != nil {
+			return 0, err
+		}
+		queryPK = strings.Replace(queryPK, "=", "<>", 0)
+		if where == "" {
+			where = queryPK
+		} else {
+			where = queryPK + " AND " + where
+		}
+		args = append(argsPK, args...)
+	}
+	return table.CountValue(db, column, record[column], where, args...)
+}
+
 // trimColumns trim column name and remove empty column.
 func trimColumns(ss []string) []string {
 	for i := len(ss) - 1; i >= 0; i-- {
