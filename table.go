@@ -2,64 +2,38 @@ package sqlexpress
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 )
 
-// ColSep and ColSepWide is column names separator.
-const (
-	ColSep     = ","
-	ColSepWide = ColSep + " "
-)
+// ColSepWide is column names separator.
+const ColSepWide = ", "
 
-const placeholder = "?"
-
-// TableProfile is a sql database table profile.
-type TableProfile struct {
-	Name                    string // Table name
-	PrimaryKey              string // Multi-column supports
-	AutoIncColumn           string
-	ExcludedColumnsOnInsert string
-	ExcludedColumnsOnUpdate string
-	OtherColumns            string
-}
+// Placeholder is sql query placeholder.
+const Placeholder = "?"
 
 // Table is a sql database table.
 type Table struct {
-	Name             string
-	PrimaryKey       []string
-	AutoIncColumn    string
-	ColumnsForSelect []string
-	ColumnsForInsert []string
-	ColumnsForUpdate []string
-}
-
-// NewTable create Table instance from *TableProfile.
-func NewTable(profile *TableProfile) *Table {
-	result := Table{Name: profile.Name, AutoIncColumn: profile.AutoIncColumn}
-	result.PrimaryKey = trimColumns(strings.Split(profile.PrimaryKey, ColSep))
-
-	cols := profile.PrimaryKey + ColSep + profile.OtherColumns
-	result.ColumnsForSelect = trimColumns(strings.Split(cols, ColSep))
-	cols = profile.AutoIncColumn + ColSep + profile.ExcludedColumnsOnUpdate + ColSep + profile.ExcludedColumnsOnInsert
-	result.ColumnsForSelect = addColumns(cols, result.ColumnsForSelect)
-
-	cols = profile.AutoIncColumn + ColSep + profile.ExcludedColumnsOnInsert
-	result.ColumnsForInsert = removeColumns(cols, result.ColumnsForSelect)
-
-	cols = profile.PrimaryKey + ColSep + profile.AutoIncColumn + ColSep + profile.ExcludedColumnsOnUpdate
-	result.ColumnsForUpdate = removeColumns(cols, result.ColumnsForSelect)
-
-	return &result
+	Name   string
+	Fields []Field
 }
 
 // Select query sql SELECT.
 func (table *Table) Select(db DB, clauses string, args ...interface{}) ([]Map, error) {
-	query := strings.Join(table.ColumnsForSelect, ColSepWide)
-	if query == "" {
-		query = "*"
+	if table.Name == "" {
+		return nil, errors.New("Table name cannot be empty")
 	}
-	query = fmt.Sprintf("SELECT %s from %s %s", query, table.Name, clauses)
+
+	var cols []string
+	for _, field := range table.Fields {
+		cols = append(cols, field.Name)
+	}
+	if len(cols) == 0 {
+		cols = append(cols, "*")
+	}
+
+	query := fmt.Sprintf("SELECT %s from %s %s", strings.Join(cols, ColSepWide), table.Name, clauses)
 	return MapQuery(db, query, args...)
 }
 
@@ -69,13 +43,29 @@ func (table *Table) Insert(db DB, record Map) (sql.Result, error) {
 	var placeholders []string
 	var args []interface{}
 
-	for _, col := range table.ColumnsForInsert {
-		value, exist := record[col]
-		if exist {
-			cols = append(cols, col)
-			placeholders = append(placeholders, placeholder)
-			args = append(args, value)
+	for _, field := range table.Fields {
+		if field.IsAutoInc {
+			continue
 		}
+		if field.ReadOnly {
+			if field.Default == nil {
+				continue
+			} else {
+				args = append(args, field.Default)
+			}
+		} else {
+			value := record[field.Name]
+			if value == nil {
+				value = field.Default
+			}
+			if value == nil {
+				continue
+			} else {
+				args = append(args, value)
+			}
+		}
+		cols = append(cols, field.Name)
+		placeholders = append(placeholders, Placeholder)
 	}
 
 	query := "INSERT INTO %s(%s)VALUES(%s)"
@@ -88,12 +78,21 @@ func (table *Table) Update(db DB, record Map) (sql.Result, error) {
 	var sets []string
 	var args []interface{}
 
-	for _, col := range table.ColumnsForUpdate {
-		value, exist := record[col]
-		if exist {
-			sets = append(sets, col+" = "+placeholder)
-			args = append(args, value)
+	for _, field := range table.Fields {
+		if field.InPrimaryKey || field.IsAutoInc {
+			continue
 		}
+		value, exist := record[field.Name]
+		if !field.ReadOnly && exist {
+			args = append(args, value)
+		} else {
+			if field.OnUpdate == nil {
+				continue
+			} else {
+				args = append(args, field.OnUpdate)
+			}
+		}
+		sets = append(sets, fmt.Sprintf("%s = %s", field.Name, Placeholder))
 	}
 
 	whereQuery, whereArgs, err := table.WherePrimaryKey(record)
@@ -119,19 +118,20 @@ func (table *Table) Delete(db DB, record Map) (sql.Result, error) {
 
 // WherePrimaryKey get where sql by primary key in record.
 func (table *Table) WherePrimaryKey(record Map) (query string, args []interface{}, err error) {
-	keys := append([]string{}, table.PrimaryKey...)
-	for _, key := range keys {
-		value, exist := record[key]
+	var condition []string
+	for _, field := range table.Fields {
+		if !field.InPrimaryKey {
+			continue
+		}
+		value, exist := record[field.Name]
 		if !exist {
-			err = fmt.Errorf("key %s not exists", key)
+			err = fmt.Errorf("Key %s not exists", field.Name)
 			return
 		}
+		condition = append(condition, fmt.Sprintf("%s = %s", field.Name, Placeholder))
 		args = append(args, value)
 	}
-	for i := range keys {
-		keys[i] = fmt.Sprintf("%s = %s", keys[i], placeholder)
-	}
-	query = strings.Join(keys, " AND ")
+	query = strings.Join(condition, " AND ")
 	return
 }
 
@@ -189,51 +189,4 @@ func (table *Table) CountValueByRecord(db DB, column string, record Map, exclude
 		args = append(argsPK, args...)
 	}
 	return table.CountValue(db, column, record[column], where, args...)
-}
-
-// trimColumns trim column name and remove empty column.
-func trimColumns(ss []string) []string {
-	for i := len(ss) - 1; i >= 0; i-- {
-		ss[i] = strings.TrimSpace(ss[i])
-		if ss[i] == "" {
-			ss = append(ss[:i], ss[i+1:]...)
-		}
-	}
-	return ss
-}
-
-// columnExists checks whether the column exists.
-func columnExists(col string, cols []string) bool {
-	for _, s := range cols {
-		if s == col {
-			return true
-		}
-	}
-	return false
-}
-
-// addColumns add columns to src.
-func addColumns(cols string, src []string) []string {
-	result := append([]string{}, src...)
-	for _, col := range strings.Split(cols, ColSep) {
-		col = strings.TrimSpace(col)
-		if col != "" && !columnExists(col, result) {
-			result = append(result, col)
-		}
-	}
-	return result
-}
-
-// removeColumns remove columns from src.
-func removeColumns(cols string, src []string) []string {
-	result := append([]string{}, src...)
-	for _, col := range strings.Split(cols, ColSep) {
-		col = strings.TrimSpace(col)
-		for i := len(result) - 1; i >= 0; i-- {
-			if result[i] == col {
-				result = append(result[:i], result[i+1:]...)
-			}
-		}
-	}
-	return result
 }

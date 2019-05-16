@@ -9,5 +9,5 @@ type DB interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
 }
 
-// Map is a shortcut for map[string]interface{}.
+// Map is a shortcut for map[string]interface{}, represents a database record.
 type Map map[string]interface{}
