@@ -1,4 +1,4 @@
-package sqlexpress
+package godac
 
 import "database/sql"
 

@@ -1,4 +1,4 @@
-# sqlexpress
-Extensions for Golang database/sql
+# godac
+Golang Data Access Component (GoDAC) based on database/sql
 
 In progress...

@@ -1,4 +1,4 @@
-module sqlexpress
+module godac
 
 require (
 	github.com/go-ozzo/ozzo-validation v3.5.0+incompatible
