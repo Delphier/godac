@@ -39,6 +39,7 @@ func (table *Table) Select(db DB, clauses string, args ...interface{}) ([]Map, e
 
 // Insert execute sql INSERT INTO.
 func (table *Table) Insert(db DB, record Map) (sql.Result, error) {
+	var value interface{}
 	var cols []string
 	var placeholders []string
 	var args []interface{}
@@ -51,21 +52,25 @@ func (table *Table) Insert(db DB, record Map) (sql.Result, error) {
 			if field.Default == nil {
 				continue
 			} else {
-				args = append(args, field.Default)
+				value = field.Default
 			}
 		} else {
-			value := record[field.Name]
+			value = record[field.Name]
 			if value == nil {
 				value = field.Default
 			}
 			if value == nil {
 				continue
-			} else {
-				args = append(args, value)
+			}
+		}
+		for _, rule := range field.Validations {
+			if err := rule.Validate(value); err != nil {
+				return nil, err
 			}
 		}
 		cols = append(cols, field.Name)
 		placeholders = append(placeholders, Placeholder)
+		args = append(args, value)
 	}
 
 	query := "INSERT INTO %s(%s)VALUES(%s)"
@@ -83,16 +88,20 @@ func (table *Table) Update(db DB, record Map) (sql.Result, error) {
 			continue
 		}
 		value, exist := record[field.Name]
-		if !field.ReadOnly && exist {
-			args = append(args, value)
-		} else {
+		if !(!field.ReadOnly && exist) {
 			if field.OnUpdate == nil {
 				continue
 			} else {
-				args = append(args, field.OnUpdate)
+				value = field.OnUpdate
+			}
+		}
+		for _, rule := range field.Validations {
+			if err := rule.Validate(value); err != nil {
+				return nil, err
 			}
 		}
 		sets = append(sets, fmt.Sprintf("%s = %s", field.Name, Placeholder))
+		args = append(args, value)
 	}
 
 	whereQuery, whereArgs, err := table.WherePrimaryKey(record)
