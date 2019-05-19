@@ -49,15 +49,13 @@ func (table *Table) Insert(db DB, record Map) (sql.Result, error) {
 			continue
 		}
 		if field.ReadOnly {
-			if field.Default == nil {
+			if value = field.GetDefault; value == nil {
 				continue
-			} else {
-				value = field.Default
 			}
 		} else {
 			value = record[field.Name]
 			if value == nil {
-				value = field.Default
+				value = field.GetDefault
 			}
 			if value == nil {
 				continue
@@ -89,10 +87,8 @@ func (table *Table) Update(db DB, record Map) (sql.Result, error) {
 		}
 		value, exist := record[field.Name]
 		if !(!field.ReadOnly && exist) {
-			if field.OnUpdate == nil {
+			if value = field.GetOnUpdate; value == nil {
 				continue
-			} else {
-				value = field.OnUpdate
 			}
 		}
 		for _, rule := range field.Validations {
