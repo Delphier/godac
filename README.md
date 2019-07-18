@@ -1,4 +1,4 @@
 # godac
-Golang Data Access Component (GoDAC) based on database/sql
+Golang Data Access Components (GoDAC) based on database/sql
 
 In progress...
