@@ -1,7 +1,7 @@
 package godac
 
 import "time"
-import v "github.com/go-ozzo/ozzo-validation"
+import v "github.com/go-ozzo/ozzo-validation/v3"
 
 // Field is sql database table's column.
 type Field struct {
