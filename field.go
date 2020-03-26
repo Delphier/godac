@@ -1,7 +1,10 @@
 package godac
 
-import "time"
-import v "github.com/go-ozzo/ozzo-validation/v3"
+import (
+	"time"
+
+	validation "github.com/go-ozzo/ozzo-validation/v4"
+)
 
 // Field is sql database table's column.
 type Field struct {
@@ -9,10 +12,10 @@ type Field struct {
 	Title        string
 	InPrimaryKey bool
 	IsAutoInc    bool
-	ReadOnly     bool        // Excluded on INSERT and UPDATE if true, user cannot edit directly.
-	Default      interface{} // Default value on INSERT
-	OnUpdate     interface{} // Value on UPDATE
-	Validations  []v.Rule    // validation rules
+	ReadOnly     bool              // Excluded on INSERT and UPDATE if true, user cannot edit directly.
+	Default      interface{}       // Default value on INSERT
+	OnUpdate     interface{}       // Value on UPDATE
+	Validations  []validation.Rule // validation rules
 }
 
 // DefaultFunc represents a get default value function.
