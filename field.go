@@ -1,7 +1,9 @@
 package godac
 
 import (
+	"strings"
 	"time"
+	"unicode"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
@@ -9,6 +11,7 @@ import (
 // Field is sql database table's column.
 type Field struct {
 	Name         string
+	JSONKey      string // JSON name/key.
 	Title        string
 	InPrimaryKey bool
 	IsAutoInc    bool
@@ -42,4 +45,60 @@ func (field Field) GetOnUpdate() interface{} {
 		return caller()
 	}
 	return field.OnUpdate
+}
+
+// GetJSONKey get real JSON Key, name may be converted.
+func (field Field) GetJSONKey() string {
+	if field.JSONKey == "" {
+		return jsonKeyNamingConversion(field.Name)
+	}
+	return field.JSONKey
+}
+
+// NamingConversionEnabled enable or disable naming conversion.
+var NamingConversionEnabled = true
+
+func jsonKeyNamingConversion(name string) string {
+	if NamingConversionEnabled {
+		return camelCased(name)
+	}
+	return name
+}
+
+// UppercasedWords define all uppercased words on camelCase naming conversion.
+var UppercasedWords = []string{"ID"}
+
+func camelCased(s string) string {
+	list := strings.Split(s, "_")
+	for i, v := range list {
+		if len(v) == 0 {
+			continue
+		}
+		if i == 0 {
+			if uppercasedWordsContains(v) {
+				list[i] = strings.ToLower(v)
+			} else {
+				runes := []rune(v)
+				runes[0] = unicode.ToLower(runes[0])
+				list[i] = string(runes)
+			}
+		} else {
+			if uppercasedWordsContains(v) {
+				list[i] = strings.ToUpper(v)
+			} else {
+				list[i] = strings.Title(v)
+			}
+		}
+	}
+	return strings.Join(list, "")
+}
+
+func uppercasedWordsContains(s string) bool {
+	s = strings.ToUpper(s)
+	for _, v := range UppercasedWords {
+		if v == s {
+			return true
+		}
+	}
+	return false
 }
