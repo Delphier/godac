@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
 // ColSepWide is column names separator.
@@ -108,31 +110,30 @@ func (table *Table) Insert(db DB, record Map) (sql.Result, error) {
 
 // Update execute sql UPDATE.
 func (table *Table) Update(db DB, record Map) (sql.Result, error) {
-	var sets []string
-	var args []interface{}
-
-	for _, field := range table.Fields {
-		if field.PrimaryKey || field.AutoInc {
-			continue
-		}
-		value, exist := record[field.Name]
-		if !(!field.ReadOnly && exist) {
-			if value = field.GetOnUpdate; value == nil {
-				continue
-			}
-		}
-		for _, rule := range field.Validations {
-			if err := rule.Validate(value); err != nil {
-				return nil, err
-			}
-		}
-		sets = append(sets, fmt.Sprintf("%s = %s", field.Name, Placeholder))
-		args = append(args, value)
-	}
-
 	whereQuery, whereArgs, err := table.WherePrimaryKey(record)
 	if err != nil {
 		return nil, err
+	}
+
+	var sets []string
+	var args []interface{}
+	for i, field := range table.Fields {
+		if field.PrimaryKey || field.AutoInc {
+			continue
+		}
+		value, exist := record[table.keys[i]]
+		if field.OnUpdate != nil {
+			value = field.GetOnUpdate()
+		} else {
+			if field.ReadOnly || !exist {
+				continue
+			}
+		}
+		if err := validation.Validate(value, field.Validations...); err != nil {
+			return nil, fmt.Errorf("%s %v", field.GetTitle(), err)
+		}
+		sets = append(sets, fmt.Sprintf("%s = %s", field.Name, Placeholder))
+		args = append(args, value)
 	}
 
 	query := "UPDATE %s SET %s WHERE %s"
