@@ -18,6 +18,7 @@ const Placeholder = "?"
 // Table is a sql database table.
 type Table struct {
 	active     bool
+	cols       string
 	keys       []string
 	primaryKey []int // Indexes of primary key fields.
 	autoInc    int   // index of AutoInc field.
@@ -27,14 +28,25 @@ type Table struct {
 }
 
 // Open init the Table.
-func (table *Table) Open() {
+func (table *Table) Open() error {
 	if table.active {
-		return
+		return nil
 	}
+	if strings.TrimSpace(table.Name) == "" {
+		return errors.New("Table name cannot be empty")
+	}
+	table.cols = ""
 	table.keys = []string{}
 	table.primaryKey = []int{}
 	table.autoInc = -1
 	for i, field := range table.Fields {
+		if strings.TrimSpace(field.Name) == "" {
+			return fmt.Errorf("Fields[%d]: Name cannot be empty", i)
+		}
+		if table.cols != "" {
+			table.cols = table.cols + ColSepWide
+		}
+		table.cols = table.cols + field.Name
 		table.keys = append(table.keys, field.GetKey())
 		if field.PrimaryKey {
 			table.primaryKey = append(table.primaryKey, i)
@@ -43,7 +55,11 @@ func (table *Table) Open() {
 			table.autoInc = i
 		}
 	}
+	if table.cols == "" {
+		table.cols = "*"
+	}
 	table.active = true
+	return nil
 }
 
 // Close the table.
@@ -53,25 +69,18 @@ func (table *Table) Close() {
 
 // Select query sql SELECT.
 func (table *Table) Select(db DB, clauses string, args ...interface{}) ([]Map, error) {
-	if table.Name == "" {
-		return nil, errors.New("Table name cannot be empty")
+	if err := table.Open(); err != nil {
+		return nil, err
 	}
-
-	var cols []string
-	for _, field := range table.Fields {
-		cols = append(cols, field.Name)
-	}
-	if len(cols) == 0 {
-		cols = append(cols, "*")
-	}
-
-	query := fmt.Sprintf("SELECT %s from %s %s", strings.Join(cols, ColSepWide), table.Name, clauses)
+	query := fmt.Sprintf("SELECT %s from %s %s", table.cols, table.Name, clauses)
 	return MapQuery(db, query, args...)
 }
 
 // Insert execute sql INSERT INTO.
 func (table *Table) Insert(db DB, record Map) (sql.Result, error) {
-	table.Open()
+	if err := table.Open(); err != nil {
+		return nil, err
+	}
 
 	var cols []string
 	var placeholders []string
@@ -147,13 +156,19 @@ func (table *Table) Delete(db DB, record Map) (sql.Result, error) {
 
 // WherePrimaryKey get where sql by primary key in record.
 func (table *Table) WherePrimaryKey(record Map) (query string, args []interface{}, err error) {
-	table.Open()
+	if err = table.Open(); err != nil {
+		return
+	}
+	if len(table.primaryKey) == 0 {
+		err = fmt.Errorf("The table %s does not define primary key", table.Name)
+		return
+	}
 	var condition []string
 	for _, i := range table.primaryKey {
 		key := table.keys[i]
 		value, exist := record[key]
 		if !exist {
-			err = fmt.Errorf("Key %s not exists", key)
+			err = fmt.Errorf("Primary key %s is required in record", key)
 			return
 		}
 		condition = append(condition, fmt.Sprintf("%s = %s", table.Fields[i].Name, Placeholder))
