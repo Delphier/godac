@@ -11,7 +11,7 @@ import (
 // Field is sql database table's column.
 type Field struct {
 	Name         string
-	JSONKey      string // JSON name/key.
+	Key          string // JSON name/key or Map key.
 	Title        string
 	InPrimaryKey bool
 	IsAutoInc    bool
@@ -47,26 +47,26 @@ func (field Field) GetOnUpdate() interface{} {
 	return field.OnUpdate
 }
 
-// GetJSONKey get real JSON Key, name may be converted.
-func (field Field) GetJSONKey() string {
-	if field.JSONKey == "" {
-		return jsonKeyNamingConversion(field.Name)
+// GetKey get real JSON Key or Map key, may be do naming conversion.
+func (field Field) GetKey() string {
+	if field.Key == "" {
+		return keyNamingConversion(field.Name)
 	}
-	return field.JSONKey
+	return field.Key
 }
 
 // NamingConversionEnabled enable or disable naming conversion.
 var NamingConversionEnabled = true
 
-func jsonKeyNamingConversion(name string) string {
+func keyNamingConversion(name string) string {
 	if NamingConversionEnabled {
 		return camelCased(name)
 	}
 	return name
 }
 
-// UppercasedWords define all uppercased words on camelCase naming conversion.
-var UppercasedWords = []string{"ID"}
+// UpperCasedWords define all uppercased words on camelCase naming conversion.
+var UpperCasedWords = []string{"ID"}
 
 func camelCased(s string) string {
 	list := strings.Split(s, "_")
@@ -75,7 +75,7 @@ func camelCased(s string) string {
 			continue
 		}
 		if i == 0 {
-			if uppercasedWordsContains(v) {
+			if upperCasedWordsContains(v) {
 				list[i] = strings.ToLower(v)
 			} else {
 				runes := []rune(v)
@@ -83,7 +83,7 @@ func camelCased(s string) string {
 				list[i] = string(runes)
 			}
 		} else {
-			if uppercasedWordsContains(v) {
+			if upperCasedWordsContains(v) {
 				list[i] = strings.ToUpper(v)
 			} else {
 				list[i] = strings.Title(v)
@@ -93,9 +93,9 @@ func camelCased(s string) string {
 	return strings.Join(list, "")
 }
 
-func uppercasedWordsContains(s string) bool {
+func upperCasedWordsContains(s string) bool {
 	s = strings.ToUpper(s)
-	for _, v := range UppercasedWords {
+	for _, v := range UpperCasedWords {
 		if v == s {
 			return true
 		}
