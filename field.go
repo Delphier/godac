@@ -93,8 +93,8 @@ func (field Field) GetTitle() string {
 	return field.Title
 }
 
-// DefaultFunc represents a get default value function.
-type DefaultFunc func() interface{}
+// ValueFunc represents a get Default/OnUpdate value function.
+type ValueFunc func() interface{}
 
 // Now get current timestamp.
 func Now() interface{} {
@@ -103,7 +103,7 @@ func Now() interface{} {
 
 // GetDefault parse Default value.
 func (field Field) GetDefault() interface{} {
-	caller, ok := field.Default.(DefaultFunc)
+	caller, ok := field.Default.(ValueFunc)
 	if ok {
 		return caller()
 	}
@@ -112,7 +112,7 @@ func (field Field) GetDefault() interface{} {
 
 // GetOnUpdate parse OnUpdate value.
 func (field Field) GetOnUpdate() interface{} {
-	caller, ok := field.OnUpdate.(DefaultFunc)
+	caller, ok := field.OnUpdate.(ValueFunc)
 	if ok {
 		return caller()
 	}
