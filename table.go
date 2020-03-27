@@ -45,7 +45,7 @@ func (table *Table) Insert(db DB, record Map) (sql.Result, error) {
 	var args []interface{}
 
 	for _, field := range table.Fields {
-		if field.IsAutoInc {
+		if field.AutoInc {
 			continue
 		}
 		if field.ReadOnly {
@@ -82,7 +82,7 @@ func (table *Table) Update(db DB, record Map) (sql.Result, error) {
 	var args []interface{}
 
 	for _, field := range table.Fields {
-		if field.InPrimaryKey || field.IsAutoInc {
+		if field.PrimaryKey || field.AutoInc {
 			continue
 		}
 		value, exist := record[field.Name]
@@ -125,7 +125,7 @@ func (table *Table) Delete(db DB, record Map) (sql.Result, error) {
 func (table *Table) WherePrimaryKey(record Map) (query string, args []interface{}, err error) {
 	var condition []string
 	for _, field := range table.Fields {
-		if !field.InPrimaryKey {
+		if !field.PrimaryKey {
 			continue
 		}
 		value, exist := record[field.Name]
