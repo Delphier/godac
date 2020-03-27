@@ -71,32 +71,25 @@ func (table *Table) Select(db DB, clauses string, args ...interface{}) ([]Map, e
 
 // Insert execute sql INSERT INTO.
 func (table *Table) Insert(db DB, record Map) (sql.Result, error) {
-	var value interface{}
+	table.Open()
+
 	var cols []string
 	var placeholders []string
 	var args []interface{}
-
-	for _, field := range table.Fields {
+	for i, field := range table.Fields {
 		if field.AutoInc {
 			continue
 		}
-		if field.ReadOnly {
-			if value = field.GetDefault; value == nil {
-				continue
-			}
+		value, exist := record[table.keys[i]]
+		if field.Default != nil {
+			value = field.GetDefault()
 		} else {
-			value = record[field.Name]
-			if value == nil {
-				value = field.GetDefault
-			}
-			if value == nil {
+			if field.ReadOnly || !exist {
 				continue
 			}
 		}
-		for _, rule := range field.Validations {
-			if err := rule.Validate(value); err != nil {
-				return nil, err
-			}
+		if err := validation.Validate(value, field.Validations...); err != nil {
+			return nil, fmt.Errorf("%s %v", field.GetTitle(), err)
 		}
 		cols = append(cols, field.Name)
 		placeholders = append(placeholders, Placeholder)
