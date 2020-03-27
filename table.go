@@ -15,8 +15,38 @@ const Placeholder = "?"
 
 // Table is a sql database table.
 type Table struct {
+	active     bool
+	keys       []string
+	primaryKey []int // Indexes of primary key fields.
+	autoInc    int   // index of AutoInc field.
+
 	Name   string
 	Fields []Field
+}
+
+// Open init the Table.
+func (table *Table) Open() {
+	if table.active {
+		return
+	}
+	table.keys = []string{}
+	table.primaryKey = []int{}
+	table.autoInc = -1
+	for i, field := range table.Fields {
+		table.keys = append(table.keys, field.GetKey())
+		if field.PrimaryKey {
+			table.primaryKey = append(table.primaryKey, i)
+		}
+		if table.autoInc < 0 && field.AutoInc {
+			table.autoInc = i
+		}
+	}
+	table.active = true
+}
+
+// Close the table.
+func (table *Table) Close() {
+	table.active = false
 }
 
 // Select query sql SELECT.
@@ -123,17 +153,16 @@ func (table *Table) Delete(db DB, record Map) (sql.Result, error) {
 
 // WherePrimaryKey get where sql by primary key in record.
 func (table *Table) WherePrimaryKey(record Map) (query string, args []interface{}, err error) {
+	table.Open()
 	var condition []string
-	for _, field := range table.Fields {
-		if !field.PrimaryKey {
-			continue
-		}
-		value, exist := record[field.Name]
+	for _, i := range table.primaryKey {
+		key := table.keys[i]
+		value, exist := record[key]
 		if !exist {
-			err = fmt.Errorf("Key %s not exists", field.Name)
+			err = fmt.Errorf("Key %s not exists", key)
 			return
 		}
-		condition = append(condition, fmt.Sprintf("%s = %s", field.Name, Placeholder))
+		condition = append(condition, fmt.Sprintf("%s = %s", table.Fields[i].Name, Placeholder))
 		args = append(args, value)
 	}
 	query = strings.Join(condition, " AND ")
