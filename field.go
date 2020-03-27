@@ -21,36 +21,10 @@ type Field struct {
 	Validations  []validation.Rule // validation rules
 }
 
-// DefaultFunc represents a get default value function.
-type DefaultFunc func() interface{}
-
-// Now get current timestamp.
-func Now() interface{} {
-	return time.Now()
-}
-
-// GetDefault parse Default value.
-func (field Field) GetDefault() interface{} {
-	caller, ok := field.Default.(DefaultFunc)
-	if ok {
-		return caller()
-	}
-	return field.Default
-}
-
-// GetOnUpdate parse OnUpdate value.
-func (field Field) GetOnUpdate() interface{} {
-	caller, ok := field.OnUpdate.(DefaultFunc)
-	if ok {
-		return caller()
-	}
-	return field.OnUpdate
-}
-
 // GetKey get real JSON Key or Map key, may be do naming conversion.
 func (field Field) GetKey() string {
 	if field.Key == "" {
-		return keyNamingConversion(field.Name)
+		return convertName(field.Name)
 	}
 	return field.Key
 }
@@ -58,7 +32,7 @@ func (field Field) GetKey() string {
 // NamingConversionEnabled enable or disable naming conversion.
 var NamingConversionEnabled = true
 
-func keyNamingConversion(name string) string {
+func convertName(name string) string {
 	if NamingConversionEnabled {
 		return camelCased(name)
 	}
@@ -101,4 +75,46 @@ func upperCasedWordsContains(s string) bool {
 		}
 	}
 	return false
+}
+
+// GetTitle get real title.
+func (field Field) GetTitle() string {
+	if field.Title == "" {
+		list := strings.Split(field.Name, "_")
+		for i, v := range list {
+			if upperCasedWordsContains(v) {
+				list[i] = strings.ToUpper(v)
+			} else {
+				list[i] = strings.Title(v)
+			}
+		}
+		return strings.Join(list, " ")
+	}
+	return field.Title
+}
+
+// DefaultFunc represents a get default value function.
+type DefaultFunc func() interface{}
+
+// Now get current timestamp.
+func Now() interface{} {
+	return time.Now()
+}
+
+// GetDefault parse Default value.
+func (field Field) GetDefault() interface{} {
+	caller, ok := field.Default.(DefaultFunc)
+	if ok {
+		return caller()
+	}
+	return field.Default
+}
+
+// GetOnUpdate parse OnUpdate value.
+func (field Field) GetOnUpdate() interface{} {
+	caller, ok := field.OnUpdate.(DefaultFunc)
+	if ok {
+		return caller()
+	}
+	return field.OnUpdate
 }
