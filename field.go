@@ -24,8 +24,8 @@ type Field struct {
 // DefaultFunc represents a get default value function.
 type DefaultFunc func() interface{}
 
-// CurrentTimestamp get current datetime.
-func CurrentTimestamp() interface{} {
+// Now get current timestamp.
+func Now() interface{} {
 	return time.Now()
 }
 
