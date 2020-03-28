@@ -14,13 +14,13 @@ var db *sql.DB
 
 func init() {
 	var err error
-	db, err = sql.Open("mysql", "root@/zils?charset=utf8mb4&multiStatements=true")
+	db, err = sql.Open("mysql", "root@/db?charset=utf8mb4&multiStatements=true")
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 func TestMapQuery(t *testing.T) {
-	result, err := MapQuery(db, "SELECT * FROM Libraries")
+	result, err := MapQuery(nil, db, "SELECT * FROM table")
 	if err != nil {
 		t.Fatal(err)
 	}
