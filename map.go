@@ -4,8 +4,8 @@ import (
 	"database/sql"
 )
 
-// MapQuery fetching rows to []Map.
-func MapQuery(db DB, query string, args ...interface{}) ([]Map, error) {
+// MapQuery fetching rows to []Map. keys define the Map key of columns.
+func MapQuery(keys map[string]string, db DB, query string, args ...interface{}) ([]Map, error) {
 	rows, err := db.Query(query, args...)
 	if err != nil {
 		return nil, err
@@ -26,26 +26,30 @@ func MapQuery(db DB, query string, args ...interface{}) ([]Map, error) {
 		row := make(Map)
 		for i := range dest {
 			name := colTypes[i].Name()
+			key := keys[name]
+			if key == "" {
+				key = convertName(name)
+			}
 			value := dest[i]
 			switch value.(type) {
 			case *sql.NullInt64:
 				if v := value.(*sql.NullInt64); v.Valid {
-					row[name] = v.Int64
+					row[key] = v.Int64
 				}
 			case *sql.NullFloat64:
 				if v := value.(*sql.NullFloat64); v.Valid {
-					row[name] = v.Float64
+					row[key] = v.Float64
 				}
 			case *sql.NullBool:
 				if v := value.(*sql.NullBool); v.Valid {
-					row[name] = v.Bool
+					row[key] = v.Bool
 				}
 			case *sql.NullString:
 				if v := value.(*sql.NullString); v.Valid {
-					row[name] = v.String
+					row[key] = v.String
 				}
 			default:
-				row[name] = *value.(*interface{})
+				row[key] = *value.(*interface{})
 			}
 		}
 		result = append(result, row)

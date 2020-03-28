@@ -20,6 +20,7 @@ type Table struct {
 	active     bool
 	cols       string
 	keys       []string
+	keysMap    map[string]string
 	primaryKey []int // Indexes of primary key fields.
 	autoInc    int   // index of AutoInc field.
 
@@ -37,6 +38,7 @@ func (table *Table) Open() error {
 	}
 	table.cols = ""
 	table.keys = []string{}
+	table.keysMap = map[string]string{}
 	table.primaryKey = []int{}
 	table.autoInc = -1
 	for i, field := range table.Fields {
@@ -47,7 +49,9 @@ func (table *Table) Open() error {
 			table.cols = table.cols + ColSepWide
 		}
 		table.cols = table.cols + field.Name
-		table.keys = append(table.keys, field.GetKey())
+		key := field.GetKey()
+		table.keys = append(table.keys, key)
+		table.keysMap[field.Name] = key
 		if field.PrimaryKey {
 			table.primaryKey = append(table.primaryKey, i)
 		}
@@ -73,7 +77,7 @@ func (table *Table) Select(db DB, clauses string, args ...interface{}) ([]Map, e
 		return nil, err
 	}
 	query := fmt.Sprintf("SELECT %s from %s %s", table.cols, table.Name, clauses)
-	return MapQuery(db, query, args...)
+	return MapQuery(table.keysMap, db, query, args...)
 }
 
 // Insert execute sql INSERT INTO.
