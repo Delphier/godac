@@ -208,6 +208,7 @@ func (table *Table) CountValue(db DB, column string, value interface{}, where st
 	} else {
 		switch value.(type) {
 		case string:
+			column = fmt.Sprintf("TRIM(%s)", column)
 			value = strings.TrimSpace(value.(string))
 		default:
 		}
