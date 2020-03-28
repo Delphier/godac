@@ -184,6 +184,9 @@ func (table *Table) WherePrimaryKey(record Map) (query string, args []interface{
 
 // Count query SELECT COUNT(*).
 func (table *Table) Count(db DB, where string, args ...interface{}) (int64, error) {
+	if err := table.Open(); err != nil {
+		return 0, err
+	}
 	query := fmt.Sprintf("SELECT COUNT(*) FROM %s", table.Name)
 	if where != "" {
 		query += " WHERE " + where
@@ -227,7 +230,7 @@ func (table *Table) CountValueByRecord(db DB, column string, record Map, exclude
 		if err != nil {
 			return 0, err
 		}
-		queryPK = strings.Replace(queryPK, "=", "<>", 0)
+		queryPK = strings.Replace(queryPK, "=", "<>", -1)
 		if where == "" {
 			where = queryPK
 		} else {
@@ -235,5 +238,5 @@ func (table *Table) CountValueByRecord(db DB, column string, record Map, exclude
 		}
 		args = append(argsPK, args...)
 	}
-	return table.CountValue(db, column, record[column], where, args...)
+	return table.CountValue(db, column, record[table.keysMap[column]], where, args...)
 }
