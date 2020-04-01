@@ -43,7 +43,7 @@ func (table *Table) Open() error {
 	table.autoInc = -1
 	for i, field := range table.Fields {
 		if strings.TrimSpace(field.Name) == "" {
-			return fmt.Errorf("Fields[%d]: Name cannot be empty", i)
+			return fmt.Errorf("Fields[%d]: name cannot be empty", i)
 		}
 		if table.cols != "" {
 			table.cols = table.cols + ColSepWide
@@ -85,7 +85,6 @@ func (table *Table) Insert(db DB, record Map) (sql.Result, error) {
 	if err := table.Open(); err != nil {
 		return nil, err
 	}
-
 	var cols []string
 	var placeholders []string
 	var args []interface{}
@@ -94,21 +93,23 @@ func (table *Table) Insert(db DB, record Map) (sql.Result, error) {
 			continue
 		}
 		value, exist := record[table.keys[i]]
-		if field.Default != nil {
-			value = field.GetDefault()
-		} else {
-			if field.ReadOnly || !exist {
+		if field.ReadOnly || !exist {
+			if field.Default == nil {
 				continue
+			} else {
+				value = field.GetDefault()
 			}
 		}
-		if err := validation.Validate(value, field.Validations...); err != nil {
-			return nil, fmt.Errorf("%s %v", field.GetTitle(), err)
+		if err := validate(field, value); err != nil {
+			return nil, err
 		}
 		cols = append(cols, field.Name)
 		placeholders = append(placeholders, Placeholder)
 		args = append(args, value)
 	}
-
+	if len(cols) == 0 {
+		return nil, fmt.Errorf("%s: not enough columns to insert", table.Name)
+	}
 	query := "INSERT INTO %s(%s)VALUES(%s)"
 	query = fmt.Sprintf(query, table.Name, strings.Join(cols, ColSepWide), strings.Join(placeholders, ColSepWide))
 	return db.Exec(query, args...)
@@ -120,7 +121,6 @@ func (table *Table) Update(db DB, record Map) (sql.Result, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	var sets []string
 	var args []interface{}
 	for i, field := range table.Fields {
@@ -128,23 +128,37 @@ func (table *Table) Update(db DB, record Map) (sql.Result, error) {
 			continue
 		}
 		value, exist := record[table.keys[i]]
-		if field.OnUpdate != nil {
-			value = field.GetOnUpdate()
-		} else {
-			if field.ReadOnly || !exist {
+		if field.ReadOnly || !exist {
+			if field.OnUpdate == nil {
 				continue
+			} else {
+				value = field.GetOnUpdate()
 			}
 		}
-		if err := validation.Validate(value, field.Validations...); err != nil {
-			return nil, fmt.Errorf("%s %v", field.GetTitle(), err)
+		if err := validate(field, value); err != nil {
+			return nil, err
 		}
 		sets = append(sets, fmt.Sprintf("%s = %s", field.Name, Placeholder))
 		args = append(args, value)
 	}
-
+	if len(sets) == 0 {
+		return nil, fmt.Errorf("%s: not enough columns to update", table.Name)
+	}
 	query := "UPDATE %s SET %s WHERE %s"
 	query = fmt.Sprintf(query, table.Name, strings.Join(sets, ColSepWide), whereQuery)
 	return db.Exec(query, append(args, whereArgs...)...)
+}
+
+// Validate field rules.
+func validate(field Field, value interface{}) error {
+	rules := field.Validations
+	if !field.Nullable {
+		rules = append([]validation.Rule{validation.NotNil}, rules...)
+	}
+	if err := validation.Validate(value, rules...); err != nil {
+		return Errorf(ErrValidation, field.GetTitle(), err)
+	}
+	return nil
 }
 
 // Delete execute sql DELETE;
