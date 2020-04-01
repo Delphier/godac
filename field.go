@@ -15,6 +15,7 @@ type Field struct {
 	Title       string
 	PrimaryKey  bool
 	AutoInc     bool
+	Nullable    bool
 	ReadOnly    bool              // Excluded on INSERT and UPDATE if true, user cannot edit directly.
 	Default     interface{}       // Default value on INSERT
 	OnUpdate    interface{}       // Value on UPDATE
