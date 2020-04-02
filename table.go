@@ -92,8 +92,8 @@ func (table *Table) Insert(db DB, record Map) (sql.Result, error) {
 		if field.AutoInc {
 			continue
 		}
-		value, exist := record[table.keys[i]]
-		if field.ReadOnly || !exist {
+		value := record[table.keys[i]]
+		if field.ReadOnly {
 			if field.Default == nil {
 				continue
 			} else {
