@@ -107,9 +107,6 @@ func (table *Table) Insert(db DB, record Map) (sql.Result, error) {
 		placeholders = append(placeholders, Placeholder)
 		args = append(args, value)
 	}
-	if len(cols) == 0 {
-		return nil, fmt.Errorf("%s: not enough columns to insert", table.Name)
-	}
 	query := "INSERT INTO %s(%s)VALUES(%s)"
 	query = fmt.Sprintf(query, table.Name, strings.Join(cols, ColSepWide), strings.Join(placeholders, ColSepWide))
 	return db.Exec(query, args...)
@@ -142,14 +139,14 @@ func (table *Table) Update(db DB, record Map) (sql.Result, error) {
 		args = append(args, value)
 	}
 	if len(sets) == 0 {
-		return nil, fmt.Errorf("%s: not enough columns to update", table.Name)
+		return nil, fmt.Errorf("Table %s: not enough columns to update", table.Name)
 	}
 	query := "UPDATE %s SET %s WHERE %s"
 	query = fmt.Sprintf(query, table.Name, strings.Join(sets, ColSepWide), whereQuery)
 	return db.Exec(query, append(args, whereArgs...)...)
 }
 
-// ValidationErrorFormat Define field validation error format.
+// ValidationErrorFormat define field validation error format.
 // %s represents field title, %v represents validation error, field must be in front of the error.
 var ValidationErrorFormat = "%s %v"
 
@@ -219,7 +216,8 @@ func (table *Table) Count(db DB, where string, args ...interface{}) (int64, erro
 }
 
 // CountValue query SELECT COUNT(*) by column value. used for detect duplicate value.
-func (table *Table) CountValue(db DB, column string, value interface{}, where string, args ...interface{}) (int64, error) {
+func (table *Table) CountValue(db DB, field Field, value interface{}, where string, args ...interface{}) (int64, error) {
+	column := field.Name
 	condition := "= ?"
 	if value == nil {
 		condition = "IS NULL"
@@ -243,7 +241,7 @@ func (table *Table) CountValue(db DB, column string, value interface{}, where st
 }
 
 // CountValueByRecord query SELECT COUNT(*) by record.
-func (table *Table) CountValueByRecord(db DB, column string, record Map, excludeThisRecord bool, where string, args ...interface{}) (int64, error) {
+func (table *Table) CountValueByRecord(db DB, field Field, record Map, excludeThisRecord bool, where string, args ...interface{}) (int64, error) {
 	if excludeThisRecord {
 		queryPK, argsPK, err := table.WherePrimaryKey(record)
 		if err != nil {
@@ -257,5 +255,5 @@ func (table *Table) CountValueByRecord(db DB, column string, record Map, exclude
 		}
 		args = append(argsPK, args...)
 	}
-	return table.CountValue(db, column, record[table.keysMap[column]], where, args...)
+	return table.CountValue(db, field, record[table.keysMap[field.Name]], where, args...)
 }
