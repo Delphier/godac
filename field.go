@@ -15,7 +15,7 @@ type Field struct {
 	Title       string            // The caption of column, used for display validation errors, etc...
 	PrimaryKey  bool              // Is in primary key
 	AutoInc     bool              // Is auto-increment
-	ReadOnly    bool              // If true the user cannot edit, it will be excluded on INSERT and UPDATE.
+	ReadOnly    bool              // User cannot edit, it will be excluded on INSERT and UPDATE if Default or OnUpdate is nil.
 	Default     interface{}       // Default value on INSERT
 	OnUpdate    interface{}       // Value on UPDATE
 	Validations []validation.Rule // Validation rules
@@ -103,8 +103,7 @@ func Now() interface{} {
 
 // GetDefault parse Default value.
 func (field Field) GetDefault() interface{} {
-	caller, ok := field.Default.(ValueFunc)
-	if ok {
+	if caller, ok := field.Default.(ValueFunc); ok {
 		return caller()
 	}
 	return field.Default
@@ -112,8 +111,7 @@ func (field Field) GetDefault() interface{} {
 
 // GetOnUpdate parse OnUpdate value.
 func (field Field) GetOnUpdate() interface{} {
-	caller, ok := field.OnUpdate.(ValueFunc)
-	if ok {
+	if caller, ok := field.OnUpdate.(ValueFunc); ok {
 		return caller()
 	}
 	return field.OnUpdate

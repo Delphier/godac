@@ -96,9 +96,11 @@ func (table *Table) Insert(db DB, record Map) (sql.Result, error) {
 		if field.ReadOnly {
 			if field.Default == nil {
 				continue
-			} else {
-				value = field.GetDefault()
 			}
+			value = nil
+		}
+		if value == nil {
+			value = field.GetDefault()
 		}
 		if err := validate(field, value); err != nil {
 			return nil, err
@@ -128,9 +130,11 @@ func (table *Table) Update(db DB, record Map) (sql.Result, error) {
 		if field.ReadOnly || !exist {
 			if field.OnUpdate == nil {
 				continue
-			} else {
-				value = field.GetOnUpdate()
 			}
+			value = nil
+		}
+		if value == nil {
+			value = field.GetOnUpdate()
 		}
 		if err := validate(field, value); err != nil {
 			return nil, err
