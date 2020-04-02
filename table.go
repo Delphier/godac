@@ -149,10 +149,18 @@ func (table *Table) Update(db DB, record Map) (sql.Result, error) {
 	return db.Exec(query, append(args, whereArgs...)...)
 }
 
+// ValidationErrorFormat Define field validation error format.
+// %s represents field title, %v represents validation error, field must be in front of the error.
+var ValidationErrorFormat = "%s %v"
+
 // Validate field rules.
 func validate(field Field, value interface{}) error {
 	if err := validation.Validate(value, field.Validations...); err != nil {
-		return Errorf(ErrValidation, field.GetTitle(), err)
+		if e, ok := err.(validation.Error); ok {
+			e.SetMessage(fmt.Sprintf(ValidationErrorFormat, field.GetTitle(), e))
+			return e
+		}
+		return err
 	}
 	return nil
 }
