@@ -151,11 +151,7 @@ func (table *Table) Update(db DB, record Map) (sql.Result, error) {
 
 // Validate field rules.
 func validate(field Field, value interface{}) error {
-	rules := field.Validations
-	if !field.Nullable {
-		rules = append([]validation.Rule{validation.NotNil}, rules...)
-	}
-	if err := validation.Validate(value, rules...); err != nil {
+	if err := validation.Validate(value, field.Validations...); err != nil {
 		return Errorf(ErrValidation, field.GetTitle(), err)
 	}
 	return nil
