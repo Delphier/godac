@@ -10,15 +10,15 @@ import (
 
 // Field is sql database table's column.
 type Field struct {
-	Name        string
-	Key         string // JSON name/key or Map key.
-	Title       string
-	PrimaryKey  bool
-	AutoInc     bool
-	ReadOnly    bool              // Excluded on INSERT and UPDATE if true, user cannot edit directly.
+	Name        string            // Column name
+	Key         string            // Map key or JSON name/key
+	Title       string            // The caption of column, used for display validation errors, etc...
+	PrimaryKey  bool              // Is in primary key
+	AutoInc     bool              // Is auto-increment
+	ReadOnly    bool              // If true the user cannot edit, it will be excluded on INSERT and UPDATE.
 	Default     interface{}       // Default value on INSERT
 	OnUpdate    interface{}       // Value on UPDATE
-	Validations []validation.Rule // validation rules
+	Validations []validation.Rule // Validation rules
 }
 
 // GetKey get real JSON Key or Map key, may be do naming conversion.
