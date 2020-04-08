@@ -76,7 +76,7 @@ func (table *Table) Select(db DB, clauses string, args ...interface{}) ([]Map, e
 	if err := table.Open(); err != nil {
 		return nil, err
 	}
-	query := fmt.Sprintf("SELECT %s from %s %s", table.cols, table.Name, clauses)
+	query := fmt.Sprintf("SELECT %s FROM %s %s", table.cols, table.Name, clauses)
 	return MapQuery(table.keysMap, db, query, args...)
 }
 
