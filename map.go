@@ -6,6 +6,20 @@ import (
 
 // MapQuery fetching rows to []Map. keys define the Map key of columns.
 func MapQuery(keys map[string]string, db DB, query string, args ...interface{}) ([]Map, error) {
+	return mapQuery(false, keys, db, query, args...)
+}
+
+// MapQueryRow fetching first row to Map. keys define the Map key of columns.
+func MapQueryRow(keys map[string]string, db DB, query string, args ...interface{}) (Map, error) {
+	rows, err := mapQuery(true, keys, db, query, args...)
+	if err != nil || len(rows) == 0 {
+		return nil, err
+	}
+	return rows[0], nil
+}
+
+// Set firstOnly is true to return the first row only.
+func mapQuery(firstOnly bool, keys map[string]string, db DB, query string, args ...interface{}) ([]Map, error) {
 	rows, err := db.Query(query, args...)
 	if err != nil {
 		return nil, err
@@ -53,6 +67,9 @@ func MapQuery(keys map[string]string, db DB, query string, args ...interface{}) 
 			}
 		}
 		result = append(result, row)
+		if firstOnly {
+			break
+		}
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
