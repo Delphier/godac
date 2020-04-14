@@ -158,8 +158,7 @@ var ValidationErrorFormat = "%s %v"
 func validate(field Field, value interface{}) error {
 	if err := validation.Validate(value, field.Validations...); err != nil {
 		if e, ok := err.(validation.Error); ok {
-			e.SetMessage(fmt.Sprintf(ValidationErrorFormat, field.GetTitle(), e))
-			return e
+			return e.SetMessage(fmt.Sprintf(ValidationErrorFormat, field.GetTitle(), e))
 		}
 		return err
 	}
