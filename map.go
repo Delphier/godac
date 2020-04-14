@@ -11,11 +11,11 @@ func MapQuery(keys map[string]string, db DB, query string, args ...interface{}) 
 
 // MapQueryRow fetching first row to Map. keys define the Map key of columns.
 func MapQueryRow(keys map[string]string, db DB, query string, args ...interface{}) (Map, error) {
-	rows, err := mapQuery(true, keys, db, query, args...)
-	if err != nil || len(rows) == 0 {
+	maps, err := mapQuery(true, keys, db, query, args...)
+	if err != nil || len(maps) == 0 {
 		return nil, err
 	}
-	return rows[0], nil
+	return maps[0], nil
 }
 
 // Set firstOnly is true to return the first row only.
