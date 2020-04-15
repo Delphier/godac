@@ -81,13 +81,14 @@ func (table *Table) Select(db DB, clauses string, args ...interface{}) ([]Map, e
 }
 
 // Insert execute sql INSERT INTO.
-func (table *Table) Insert(db DB, record Map) (sql.Result, error) {
+func (table *Table) Insert(db DB, record Map) (Result, error) {
 	if err := table.Open(); err != nil {
 		return nil, err
 	}
 	var cols []string
 	var placeholders []string
 	var args []interface{}
+	var pk = Map{}
 	for i, field := range table.Fields {
 		if field.AutoInc {
 			continue
@@ -108,20 +109,25 @@ func (table *Table) Insert(db DB, record Map) (sql.Result, error) {
 		cols = append(cols, field.Name)
 		placeholders = append(placeholders, Placeholder)
 		args = append(args, value)
+		if field.PrimaryKey {
+			pk[table.keys[i]] = value
+		}
 	}
 	query := "INSERT INTO %s(%s)VALUES(%s)"
 	query = fmt.Sprintf(query, table.Name, strings.Join(cols, ColSepWide), strings.Join(placeholders, ColSepWide))
-	return db.Exec(query, args...)
+	rst, err := db.Exec(query, args...)
+	return result{rst, true, db, table, pk}, err
 }
 
 // Update execute sql UPDATE.
-func (table *Table) Update(db DB, record Map) (sql.Result, error) {
+func (table *Table) Update(db DB, record Map) (Result, error) {
 	whereQuery, whereArgs, err := table.WherePrimaryKey(record)
 	if err != nil {
 		return nil, err
 	}
 	var sets []string
 	var args []interface{}
+	var pk = Map{}
 	for i, field := range table.Fields {
 		if field.PrimaryKey || field.AutoInc {
 			continue
@@ -141,13 +147,17 @@ func (table *Table) Update(db DB, record Map) (sql.Result, error) {
 		}
 		sets = append(sets, fmt.Sprintf("%s = %s", field.Name, Placeholder))
 		args = append(args, value)
+		if field.PrimaryKey {
+			pk[table.keys[i]] = value
+		}
 	}
 	if len(sets) == 0 {
 		return nil, fmt.Errorf("Table %s: not enough columns to update", table.Name)
 	}
 	query := "UPDATE %s SET %s WHERE %s"
 	query = fmt.Sprintf(query, table.Name, strings.Join(sets, ColSepWide), whereQuery)
-	return db.Exec(query, append(args, whereArgs...)...)
+	rst, err := db.Exec(query, append(args, whereArgs...)...)
+	return result{rst, false, db, table, pk}, err
 }
 
 // ValidationErrorFormat define field validation error format.
