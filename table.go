@@ -88,7 +88,10 @@ func (table *Table) Insert(db DB, record Map) (Result, error) {
 	var cols []string
 	var placeholders []string
 	var args []interface{}
-	var pk = Map{}
+	var rec = Map{}
+	for k, v := range record {
+		rec[k] = v
+	}
 	for i, field := range table.Fields {
 		if field.AutoInc {
 			continue
@@ -109,14 +112,12 @@ func (table *Table) Insert(db DB, record Map) (Result, error) {
 		cols = append(cols, field.Name)
 		placeholders = append(placeholders, Placeholder)
 		args = append(args, value)
-		if field.PrimaryKey {
-			pk[table.keys[i]] = value
-		}
+		rec[table.keys[i]] = value
 	}
 	query := "INSERT INTO %s(%s)VALUES(%s)"
 	query = fmt.Sprintf(query, table.Name, strings.Join(cols, ColSepWide), strings.Join(placeholders, ColSepWide))
 	rst, err := db.Exec(query, args...)
-	return result{rst, true, db, table, pk}, err
+	return result{rst, true, db, table, rec}, err
 }
 
 // Update execute sql UPDATE.
@@ -127,7 +128,10 @@ func (table *Table) Update(db DB, record Map) (Result, error) {
 	}
 	var sets []string
 	var args []interface{}
-	var pk = Map{}
+	var rec = Map{}
+	for k, v := range record {
+		rec[k] = v
+	}
 	for i, field := range table.Fields {
 		if field.PrimaryKey || field.AutoInc {
 			continue
@@ -147,9 +151,7 @@ func (table *Table) Update(db DB, record Map) (Result, error) {
 		}
 		sets = append(sets, fmt.Sprintf("%s = %s", field.Name, Placeholder))
 		args = append(args, value)
-		if field.PrimaryKey {
-			pk[table.keys[i]] = value
-		}
+		rec[table.keys[i]] = value
 	}
 	if len(sets) == 0 {
 		return nil, fmt.Errorf("Table %s: not enough columns to update", table.Name)
@@ -157,7 +159,7 @@ func (table *Table) Update(db DB, record Map) (Result, error) {
 	query := "UPDATE %s SET %s WHERE %s"
 	query = fmt.Sprintf(query, table.Name, strings.Join(sets, ColSepWide), whereQuery)
 	rst, err := db.Exec(query, append(args, whereArgs...)...)
-	return result{rst, false, db, table, pk}, err
+	return result{rst, false, db, table, rec}, err
 }
 
 // ValidationErrorFormat define field validation error format.
