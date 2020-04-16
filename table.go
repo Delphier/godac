@@ -121,7 +121,7 @@ func (table *Table) DefaultInsert(db DB, record Map) (Result, error) {
 			value = field.GetDefault()
 		}
 		rec[table.keys[i]] = value
-		if err := table.validateField(field, value); err != nil {
+		if err := table.validateField(db, field, rec, value, true); err != nil {
 			return nil, err
 		}
 		cols = append(cols, field.Name)
@@ -172,7 +172,7 @@ func (table *Table) DefaultUpdate(db DB, record Map) (Result, error) {
 			value = field.GetOnUpdate()
 		}
 		rec[table.keys[i]] = value
-		if err := table.validateField(field, value); err != nil {
+		if err := table.validateField(db, field, rec, value, false); err != nil {
 			return nil, err
 		}
 		sets = append(sets, fmt.Sprintf("%s = %s", field.Name, Placeholder))
@@ -192,7 +192,12 @@ func (table *Table) DefaultUpdate(db DB, record Map) (Result, error) {
 var ValidationErrorFormat = "%s: %v"
 
 // Validate field rules.
-func (table *Table) validateField(field Field, value interface{}) error {
+func (table *Table) validateField(db DB, field Field, record Map, value interface{}, isInsert bool) error {
+	for _, v := range field.Validations {
+		if rule, ok := v.(ValidationRule); ok {
+			rule.Init(db, table, field, record, isInsert)
+		}
+	}
 	if err := validation.Validate(value, field.Validations...); err != nil {
 		if e, ok := err.(validation.Error); ok {
 			return e.SetMessage(fmt.Sprintf(ValidationErrorFormat, field.GetTitle(), e))
