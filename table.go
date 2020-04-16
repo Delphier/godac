@@ -26,9 +26,9 @@ type Table struct {
 
 	Name     string
 	Fields   []Field
-	OnInsert func(DB, Map) (Result, error)
-	OnUpdate func(DB, Map) (Result, error)
-	OnDelete func(DB, Map) (sql.Result, error)
+	OnInsert func(*Table, DB, Map) (Result, error)
+	OnUpdate func(*Table, DB, Map) (Result, error)
+	OnDelete func(*Table, DB, Map) (sql.Result, error)
 }
 
 // Open init the Table.
@@ -91,7 +91,7 @@ func (table *Table) Insert(db DB, record Map) (Result, error) {
 	if table.OnInsert == nil {
 		return table.DefaultInsert(db, record)
 	}
-	return table.OnInsert(db, record)
+	return table.OnInsert(table, db, record)
 }
 
 // DefaultInsert is default Insert handler.
@@ -142,7 +142,7 @@ func (table *Table) Update(db DB, record Map) (Result, error) {
 	if table.OnUpdate == nil {
 		return table.DefaultUpdate(db, record)
 	}
-	return table.OnUpdate(db, record)
+	return table.OnUpdate(table, db, record)
 }
 
 // DefaultUpdate is default Update handler.
@@ -210,7 +210,7 @@ func (table *Table) Delete(db DB, record Map) (sql.Result, error) {
 	if table.OnDelete == nil {
 		return table.DefaultDelete(db, record)
 	}
-	return table.OnDelete(db, record)
+	return table.OnDelete(table, db, record)
 }
 
 // DefaultDelete is default Delete handler.
