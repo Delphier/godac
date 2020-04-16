@@ -99,13 +99,13 @@ func (table *Table) DefaultInsert(db DB, record Map) (Result, error) {
 	if err := table.Open(); err != nil {
 		return nil, err
 	}
-	var cols []string
-	var placeholders []string
-	var args []interface{}
 	var rec = Map{}
 	for k, v := range record {
 		rec[k] = v
 	}
+	var cols []string
+	var placeholders []string
+	var args []interface{}
 	for i, field := range table.Fields {
 		if field.AutoInc {
 			continue
@@ -120,13 +120,13 @@ func (table *Table) DefaultInsert(db DB, record Map) (Result, error) {
 		if value == nil {
 			value = field.GetDefault()
 		}
+		rec[table.keys[i]] = value
 		if err := validate(field, value); err != nil {
 			return nil, err
 		}
 		cols = append(cols, field.Name)
 		placeholders = append(placeholders, Placeholder)
 		args = append(args, value)
-		rec[table.keys[i]] = value
 	}
 	query := "INSERT INTO %s(%s)VALUES(%s)"
 	query = fmt.Sprintf(query, table.Name, strings.Join(cols, ColSepWide), strings.Join(placeholders, ColSepWide))
@@ -151,12 +151,12 @@ func (table *Table) DefaultUpdate(db DB, record Map) (Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	var sets []string
-	var args []interface{}
 	var rec = Map{}
 	for k, v := range record {
 		rec[k] = v
 	}
+	var sets []string
+	var args []interface{}
 	for i, field := range table.Fields {
 		if field.PrimaryKey || field.AutoInc {
 			continue
@@ -171,12 +171,12 @@ func (table *Table) DefaultUpdate(db DB, record Map) (Result, error) {
 		if value == nil {
 			value = field.GetOnUpdate()
 		}
+		rec[table.keys[i]] = value
 		if err := validate(field, value); err != nil {
 			return nil, err
 		}
 		sets = append(sets, fmt.Sprintf("%s = %s", field.Name, Placeholder))
 		args = append(args, value)
-		rec[table.keys[i]] = value
 	}
 	if len(sets) == 0 {
 		return nil, fmt.Errorf("Table %s: not enough columns to update", table.Name)
