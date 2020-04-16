@@ -290,7 +290,7 @@ func (table *Table) CountValue(db DB, field Field, value interface{}, where stri
 	if where == "" {
 		where = condition
 	} else {
-		where += condition + " AND " + where
+		where = condition + " AND " + where
 	}
 
 	return table.Count(db, where, args...)
