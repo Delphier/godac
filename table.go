@@ -291,9 +291,9 @@ func (table *Table) CountValue(db DB, field Field, value interface{}, where stri
 	return table.Count(db, where, args...)
 }
 
-// CountValueByRecord query SELECT COUNT(*) by record.
-func (table *Table) CountValueByRecord(db DB, field Field, record Map, excludeThisRecord bool, where string, args ...interface{}) (int64, error) {
-	if excludeThisRecord {
+// CountRecord query SELECT COUNT(*) by record.
+func (table *Table) CountRecord(db DB, field Field, record Map, excludeSelf bool, where string, args ...interface{}) (int64, error) {
+	if excludeSelf {
 		queryPK, argsPK, err := table.WherePrimaryKey(record)
 		if err != nil {
 			return 0, err
