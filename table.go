@@ -306,5 +306,8 @@ func (table *Table) CountValueByRecord(db DB, field Field, record Map, excludeTh
 		}
 		args = append(argsPK, args...)
 	}
+	if err := table.Open(); err != nil {
+		return 0, err
+	}
 	return table.CountValue(db, field, record[table.keysMap[field.Name]], where, args...)
 }
