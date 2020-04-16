@@ -24,8 +24,11 @@ type Table struct {
 	primaryKey []int // Indexes of primary key fields.
 	autoInc    int   // index of AutoInc field.
 
-	Name   string
-	Fields []Field
+	Name     string
+	Fields   []Field
+	OnInsert func(DB, Map) (Result, error)
+	OnUpdate func(DB, Map) (Result, error)
+	OnDelete func(DB, Map) (sql.Result, error)
 }
 
 // Open init the Table.
@@ -85,6 +88,17 @@ func (table *Table) Insert(db DB, record Map) (Result, error) {
 	if err := table.Open(); err != nil {
 		return nil, err
 	}
+	if table.OnInsert == nil {
+		return table.DefaultInsert(db, record)
+	}
+	return table.OnInsert(db, record)
+}
+
+// DefaultInsert is default Insert handler.
+func (table *Table) DefaultInsert(db DB, record Map) (Result, error) {
+	if err := table.Open(); err != nil {
+		return nil, err
+	}
 	var cols []string
 	var placeholders []string
 	var args []interface{}
@@ -122,6 +136,17 @@ func (table *Table) Insert(db DB, record Map) (Result, error) {
 
 // Update execute sql UPDATE.
 func (table *Table) Update(db DB, record Map) (Result, error) {
+	if err := table.Open(); err != nil {
+		return nil, err
+	}
+	if table.OnUpdate == nil {
+		return table.DefaultUpdate(db, record)
+	}
+	return table.OnUpdate(db, record)
+}
+
+// DefaultUpdate is default Update handler.
+func (table *Table) DefaultUpdate(db DB, record Map) (Result, error) {
 	whereQuery, whereArgs, err := table.WherePrimaryKey(record)
 	if err != nil {
 		return nil, err
@@ -179,6 +204,17 @@ func validate(field Field, value interface{}) error {
 
 // Delete execute sql DELETE;
 func (table *Table) Delete(db DB, record Map) (sql.Result, error) {
+	if err := table.Open(); err != nil {
+		return nil, err
+	}
+	if table.OnDelete == nil {
+		return table.DefaultDelete(db, record)
+	}
+	return table.OnDelete(db, record)
+}
+
+// DefaultDelete is default Delete handler.
+func (table *Table) DefaultDelete(db DB, record Map) (sql.Result, error) {
 	query, args, err := table.WherePrimaryKey(record)
 	if err != nil {
 		return nil, err
