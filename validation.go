@@ -30,7 +30,7 @@ func (rule *uniqueRule) Init(db DB, table *Table, field Field, record Map, isIns
 	rule.isInsert = isInsert
 }
 
-func (rule *uniqueRule) validate(value interface{}) (err error) {
+func (rule *uniqueRule) Validate(value interface{}) (err error) {
 	var count int64
 	if rule.isInsert {
 		count, err = rule.table.CountValue(rule.db, rule.field, value, "")
