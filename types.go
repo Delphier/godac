@@ -31,17 +31,15 @@ func (r result) Record(refresh bool) (Map, error) {
 		return r.record, nil
 	}
 	var record = Map{}
+	for k, v := range r.record {
+		record[k] = v
+	}
 	if r.isInsert && r.table.autoInc >= 0 && r.table.Fields[r.table.autoInc].PrimaryKey {
 		id, err := r.sqlResult.LastInsertId()
 		if err != nil {
 			return nil, err
 		}
-		for key, value := range r.record {
-			record[key] = value
-		}
 		record[r.table.keys[r.table.autoInc]] = id
-	} else {
-		record = r.record
 	}
 	query, args, err := r.table.WherePrimaryKey(record)
 	if err != nil {
@@ -51,7 +49,10 @@ func (r result) Record(refresh bool) (Map, error) {
 	if err != nil || len(maps) == 0 {
 		return nil, err
 	}
-	return maps[0], nil
+	for k, v := range maps[0] {
+		record[k] = v
+	}
+	return record, nil
 }
 
 func (r result) LastInsertId() (int64, error) {
