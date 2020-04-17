@@ -12,12 +12,13 @@ type DB interface {
 // Map is a shortcut for map[string]interface{}, represents a database record.
 type Map map[string]interface{}
 
-// State define the dataset state.
+// State is dataset state. NOT USED NOW.
 type State int
 
-// States. NOT USED NOW.
+// States enum.
 const (
-	StateInsert State = iota
+	StateUnknown State = iota
+	StateInsert
 	StateUpdate
 	StateDelete
 )
