@@ -12,6 +12,16 @@ type DB interface {
 // Map is a shortcut for map[string]interface{}, represents a database record.
 type Map map[string]interface{}
 
+// State define the dataset state.
+type State int
+
+// States. NOT USED NOW.
+const (
+	StateInsert State = iota
+	StateUpdate
+	StateDelete
+)
+
 // Context contains the environment information on Insert/Update.
 type Context struct {
 	DB       DB
