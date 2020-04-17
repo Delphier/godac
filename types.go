@@ -29,32 +29,30 @@ type Result interface {
 
 type result struct {
 	sqlResult sql.Result
-	isInsert  bool
-	db        DB
-	table     *Table
-	record    Map
+	context   Context
 }
 
 func (r result) Record(refresh bool) (Map, error) {
 	if !refresh {
-		return r.record, nil
+		return r.context.Record, nil
 	}
 	var record = Map{}
-	for k, v := range r.record {
+	for k, v := range r.context.Record {
 		record[k] = v
 	}
-	if r.isInsert && r.table.autoInc >= 0 && r.table.Fields[r.table.autoInc].PrimaryKey {
+	table := r.context.Table
+	if r.context.IsInsert && table.autoInc >= 0 && table.Fields[table.autoInc].PrimaryKey {
 		id, err := r.sqlResult.LastInsertId()
 		if err != nil {
 			return nil, err
 		}
-		record[r.table.keys[r.table.autoInc]] = id
+		record[table.keys[table.autoInc]] = id
 	}
-	query, args, err := r.table.WherePrimaryKey(record)
+	query, args, err := table.WherePrimaryKey(record)
 	if err != nil {
 		return nil, err
 	}
-	maps, err := r.table.Select(r.db, "WHERE "+query, args...)
+	maps, err := table.Select(r.context.DB, "WHERE "+query, args...)
 	if err != nil || len(maps) == 0 {
 		return nil, err
 	}
