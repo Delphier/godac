@@ -195,7 +195,7 @@ var ValidationErrorFormat = "%s: %v"
 func (table *Table) validateField(db DB, field Field, record Map, value interface{}, isInsert bool) error {
 	for _, v := range field.Validations {
 		if rule, ok := v.(ValidationRule); ok {
-			rule.Init(db, table, field, record, isInsert)
+			rule.SetContext(Context{db, table, field, record, isInsert})
 		}
 	}
 	if err := validation.Validate(value, field.Validations...); err != nil {
