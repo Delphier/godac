@@ -12,6 +12,15 @@ type DB interface {
 // Map is a shortcut for map[string]interface{}, represents a database record.
 type Map map[string]interface{}
 
+// Context contains the environment information on Insert/Update.
+type Context struct {
+	DB       DB
+	Table    *Table
+	Field    Field
+	Record   Map
+	IsInsert bool
+}
+
 // Result is an extension of sql.Result.
 type Result interface {
 	Record(refresh bool) (Map, error) // Get last Insert/Update record, set refresh is true to requery from database.

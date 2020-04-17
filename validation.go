@@ -8,15 +8,6 @@ var Unique = &uniqueRule{}
 // ErrUnique is validation error.
 var ErrUnique = validation.NewError("unique", "already exists")
 
-// Context contains the environment information on Insert/Update.
-type Context struct {
-	DB       DB
-	Table    *Table
-	Field    Field
-	Record   Map
-	IsInsert bool
-}
-
 // ValidationRule is an extension of validation.Rule
 type ValidationRule interface {
 	SetContext(Context)
