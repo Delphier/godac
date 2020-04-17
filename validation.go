@@ -8,34 +8,35 @@ var Unique = &uniqueRule{}
 // ErrUnique is validation error.
 var ErrUnique = validation.NewError("unique", "already exists")
 
+// Context contains the environment information on Insert/Update.
+type Context struct {
+	DB       DB
+	Table    *Table
+	Field    Field
+	Record   Map
+	IsInsert bool
+}
+
 // ValidationRule is an extension of validation.Rule
 type ValidationRule interface {
-	Init(db DB, table *Table, field Field, record Map, isInsert bool)
+	SetContext(Context)
 	validation.Rule
 }
 
 type uniqueRule struct {
-	db       DB
-	table    *Table
-	field    Field
-	record   Map
-	isInsert bool
+	context Context
 }
 
-func (rule *uniqueRule) Init(db DB, table *Table, field Field, record Map, isInsert bool) {
-	rule.db = db
-	rule.table = table
-	rule.field = field
-	rule.record = record
-	rule.isInsert = isInsert
+func (rule *uniqueRule) SetContext(c Context) {
+	rule.context = c
 }
 
 func (rule *uniqueRule) Validate(value interface{}) (err error) {
 	var count int64
-	if rule.isInsert {
-		count, err = rule.table.CountValue(rule.db, rule.field, value, "")
+	if rule.context.IsInsert {
+		count, err = rule.context.Table.CountValue(rule.context.DB, rule.context.Field, value, "")
 	} else {
-		count, err = rule.table.CountRecord(rule.db, rule.field, rule.record, true, "")
+		count, err = rule.context.Table.CountRecord(rule.context.DB, rule.context.Field, rule.context.Record, true, "")
 	}
 	if err != nil {
 		return
