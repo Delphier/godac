@@ -186,10 +186,6 @@ func (table *Table) DefaultUpdate(db DB, record Map) (Result, error) {
 	return NewResult(Context{StateUpdate, db, table, rec, Field{}}, rst), err
 }
 
-// ValidationErrorFormat define field validation error format.
-// %s represents field title, %v represents validation error, field must be in front of the error.
-var ValidationErrorFormat = "%s: %v"
-
 // Validate field rules.
 func validateField(c Context, value interface{}) error {
 	field := c.Field
@@ -200,7 +196,7 @@ func validateField(c Context, value interface{}) error {
 	}
 	if err := validation.Validate(value, field.Validations...); err != nil {
 		if e, ok := err.(validation.Error); ok {
-			return e.SetMessage(fmt.Sprintf(ValidationErrorFormat, field.GetTitle(), e))
+			return e.SetMessage(fmt.Sprintf(ErrorFormatOnValidation, field.GetTitle(), e))
 		}
 		return err
 	}

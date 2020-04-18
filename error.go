@@ -8,6 +8,9 @@ var (
 // Error formats.
 var (
 	ErrorFormatOnDelete = "can not be deleted, %s"
+	// Define field validation error format.
+	// %s represents field title, %v represents validation error, field must be in front of the error.
+	ErrorFormatOnValidation = "%s: %v"
 )
 
 // Error define an error that include error code.
