@@ -14,9 +14,6 @@ const ColSepWide = ", "
 // Placeholder is sql query placeholder.
 const Placeholder = "?"
 
-// ActionFunc is customize func for Insert/Update/Delete
-type ActionFunc func(Context) (Result, error)
-
 // Table is a sql database table.
 type Table struct {
 	active     bool

@@ -84,3 +84,6 @@ func (r result) LastInsertId() (int64, error) {
 func (r result) RowsAffected() (int64, error) {
 	return r.sqlResult.RowsAffected()
 }
+
+// ActionFunc is customize func for Insert/Update/Delete
+type ActionFunc func(Context) (Result, error)
