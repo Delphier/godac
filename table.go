@@ -1,7 +1,6 @@
 package godac
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
@@ -15,6 +14,9 @@ const ColSepWide = ", "
 // Placeholder is sql query placeholder.
 const Placeholder = "?"
 
+// ActionFunc is customize func for Insert/Update/Delete
+type ActionFunc func(Context) (Result, error)
+
 // Table is a sql database table.
 type Table struct {
 	active     bool
@@ -26,9 +28,9 @@ type Table struct {
 
 	Name     string
 	Fields   []Field
-	OnInsert func(*Table, DB, Map) (Result, error)
-	OnUpdate func(*Table, DB, Map) (Result, error)
-	OnDelete func(*Table, DB, Map) (sql.Result, error)
+	OnInsert ActionFunc
+	OnUpdate ActionFunc
+	OnDelete ActionFunc
 }
 
 // Open init the Table.
@@ -91,7 +93,7 @@ func (table *Table) Insert(db DB, record Map) (Result, error) {
 	if table.OnInsert == nil {
 		return table.DefaultInsert(db, record)
 	}
-	return table.OnInsert(table, db, record)
+	return table.OnInsert(Context{StateInsert, db, table, record, Field{}})
 }
 
 // DefaultInsert is default Insert handler.
@@ -142,7 +144,7 @@ func (table *Table) Update(db DB, record Map) (Result, error) {
 	if table.OnUpdate == nil {
 		return table.DefaultUpdate(db, record)
 	}
-	return table.OnUpdate(table, db, record)
+	return table.OnUpdate(Context{StateUpdate, db, table, record, Field{}})
 }
 
 // DefaultUpdate is default Update handler.
@@ -209,25 +211,26 @@ func validateField(c Context, value interface{}) error {
 }
 
 // Delete execute sql DELETE;
-func (table *Table) Delete(db DB, record Map) (sql.Result, error) {
+func (table *Table) Delete(db DB, record Map) (Result, error) {
 	if err := table.Open(); err != nil {
 		return nil, err
 	}
 	if table.OnDelete == nil {
 		return table.DefaultDelete(db, record)
 	}
-	return table.OnDelete(table, db, record)
+	return table.OnDelete(Context{StateDelete, db, table, record, Field{}})
 }
 
 // DefaultDelete is default Delete handler.
-func (table *Table) DefaultDelete(db DB, record Map) (sql.Result, error) {
+func (table *Table) DefaultDelete(db DB, record Map) (Result, error) {
 	query, args, err := table.WherePrimaryKey(record)
 	if err != nil {
 		return nil, err
 	}
 
 	query = fmt.Sprintf("DELETE FROM %s WHERE %s", table.Name, query)
-	return db.Exec(query, args...)
+	rst, err := db.Exec(query, args...)
+	return NewResult(Context{StateDelete, db, table, record, Field{}}, rst), err
 }
 
 // WherePrimaryKey get where sql by primary key in record.
