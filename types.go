@@ -39,8 +39,13 @@ type Result interface {
 }
 
 type result struct {
-	sqlResult sql.Result
 	context   Context
+	sqlResult sql.Result
+}
+
+// NewResult create result
+func NewResult(c Context, r sql.Result) Result {
+	return result{c, r}
 }
 
 func (r result) Record(refresh bool) (Map, error) {
