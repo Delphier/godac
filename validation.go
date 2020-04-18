@@ -24,7 +24,7 @@ func (rule *uniqueRule) SetContext(c Context) {
 
 func (rule *uniqueRule) Validate(value interface{}) (err error) {
 	var count int64
-	if rule.context.IsInsert {
+	if rule.context.State == StateInsert {
 		count, err = rule.context.Table.CountValue(rule.context.DB, rule.context.Field, value, "")
 	} else {
 		count, err = rule.context.Table.CountRecord(rule.context.DB, rule.context.Field, rule.context.Record, true, "")

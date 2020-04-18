@@ -121,7 +121,7 @@ func (table *Table) DefaultInsert(db DB, record Map) (Result, error) {
 			value = field.GetDefault()
 		}
 		rec[table.keys[i]] = value
-		if err := validateField(Context{db, table, field, rec, true}, value); err != nil {
+		if err := validateField(Context{StateInsert, db, table, rec, field}, value); err != nil {
 			return nil, err
 		}
 		cols = append(cols, field.Name)
@@ -131,7 +131,7 @@ func (table *Table) DefaultInsert(db DB, record Map) (Result, error) {
 	query := "INSERT INTO %s(%s)VALUES(%s)"
 	query = fmt.Sprintf(query, table.Name, strings.Join(cols, ColSepWide), strings.Join(placeholders, ColSepWide))
 	rst, err := db.Exec(query, args...)
-	return result{rst, Context{db, table, Field{}, rec, true}}, err
+	return result{rst, Context{StateInsert, db, table, rec, Field{}}}, err
 }
 
 // Update execute sql UPDATE.
@@ -172,7 +172,7 @@ func (table *Table) DefaultUpdate(db DB, record Map) (Result, error) {
 			value = field.GetOnUpdate()
 		}
 		rec[table.keys[i]] = value
-		if err := validateField(Context{db, table, field, rec, false}, value); err != nil {
+		if err := validateField(Context{StateUpdate, db, table, rec, field}, value); err != nil {
 			return nil, err
 		}
 		sets = append(sets, fmt.Sprintf("%s = %s", field.Name, Placeholder))
@@ -184,7 +184,7 @@ func (table *Table) DefaultUpdate(db DB, record Map) (Result, error) {
 	query := "UPDATE %s SET %s WHERE %s"
 	query = fmt.Sprintf(query, table.Name, strings.Join(sets, ColSepWide), whereQuery)
 	rst, err := db.Exec(query, append(args, whereArgs...)...)
-	return result{rst, Context{db, table, Field{}, rec, false}}, err
+	return result{rst, Context{StateUpdate, db, table, rec, Field{}}}, err
 }
 
 // ValidationErrorFormat define field validation error format.

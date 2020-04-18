@@ -12,8 +12,8 @@ type DB interface {
 // Map is a shortcut for map[string]interface{}, represents a database record.
 type Map map[string]interface{}
 
-// State is dataset state. NOT USED NOW.
-type State int
+// State is dataset state.
+type State byte
 
 // States enum.
 const (
@@ -25,11 +25,11 @@ const (
 
 // Context contains the environment information on Insert/Update.
 type Context struct {
-	DB       DB
-	Table    *Table
-	Field    Field
-	Record   Map
-	IsInsert bool
+	State  State
+	DB     DB
+	Table  *Table
+	Record Map
+	Field  Field
 }
 
 // Result is an extension of sql.Result.
@@ -52,7 +52,7 @@ func (r result) Record(refresh bool) (Map, error) {
 		record[k] = v
 	}
 	table := r.context.Table
-	if r.context.IsInsert && table.autoInc >= 0 && table.Fields[table.autoInc].PrimaryKey {
+	if r.context.State == StateInsert && table.autoInc >= 0 && table.Fields[table.autoInc].PrimaryKey {
 		id, err := r.sqlResult.LastInsertId()
 		if err != nil {
 			return nil, err
