@@ -23,7 +23,7 @@ const (
 	StateDelete
 )
 
-// Context contains the environment information on Insert/Update.
+// Context contains the environment information on Insert/Update/Delete.
 type Context struct {
 	State  State
 	DB     DB
