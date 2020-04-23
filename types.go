@@ -1,6 +1,9 @@
 package godac
 
-import "database/sql"
+import (
+	"database/sql"
+	"godac/sqlbuilder"
+)
 
 // DB is a interface of *sql.DB and *sql.Tx.
 type DB interface {
@@ -68,7 +71,7 @@ func (r result) Record(refresh bool) (Map, error) {
 	if err != nil {
 		return nil, err
 	}
-	maps, err := table.Select(r.context.DB, "WHERE "+query, args...)
+	maps, err := table.Select(r.context.DB, sqlbuilder.Select().Where(query), args...)
 	if err != nil || len(maps) == 0 {
 		return nil, err
 	}

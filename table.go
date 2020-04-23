@@ -3,13 +3,11 @@ package godac
 import (
 	"errors"
 	"fmt"
+	"godac/sqlbuilder"
 	"strings"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
-
-// ColSepWide is column names separator.
-const ColSepWide = ", "
 
 // Placeholder is sql query placeholder.
 const Placeholder = "?"
@@ -17,7 +15,7 @@ const Placeholder = "?"
 // Table is a sql database table.
 type Table struct {
 	active     bool
-	cols       string
+	cols       []string
 	keys       []string
 	keysMap    map[string]string
 	primaryKey []int // Indexes of primary key fields.
@@ -38,7 +36,7 @@ func (table *Table) Open() error {
 	if strings.TrimSpace(table.Name) == "" {
 		return errors.New("Table name cannot be empty")
 	}
-	table.cols = ""
+	table.cols = []string{}
 	table.keys = []string{}
 	table.keysMap = map[string]string{}
 	table.primaryKey = []int{}
@@ -47,10 +45,7 @@ func (table *Table) Open() error {
 		if strings.TrimSpace(field.Name) == "" {
 			return fmt.Errorf("Fields[%d]: name cannot be empty", i)
 		}
-		if table.cols != "" {
-			table.cols = table.cols + ColSepWide
-		}
-		table.cols = table.cols + field.Name
+		table.cols = append(table.cols, field.Name)
 		key := field.GetKey()
 		table.keys = append(table.keys, key)
 		table.keysMap[field.Name] = key
@@ -60,9 +55,6 @@ func (table *Table) Open() error {
 		if table.autoInc < 0 && field.AutoInc {
 			table.autoInc = i
 		}
-	}
-	if table.cols == "" {
-		table.cols = "*"
 	}
 	table.active = true
 	return nil
@@ -74,11 +66,11 @@ func (table *Table) Close() {
 }
 
 // Select query sql SELECT.
-func (table *Table) Select(db DB, clauses string, args ...interface{}) ([]Map, error) {
+func (table *Table) Select(db DB, selector sqlbuilder.Selector, args ...interface{}) ([]Map, error) {
 	if err := table.Open(); err != nil {
 		return nil, err
 	}
-	query := fmt.Sprintf("SELECT %s FROM %s %s", table.cols, table.Name, clauses)
+	query := selector.Columns(table.cols...).From(table.Name).SQL()
 	return MapQuery(table.keysMap, db, query, args...)
 }
 
@@ -128,7 +120,7 @@ func (table *Table) DefaultInsert(db DB, record Map) (Result, error) {
 		args = append(args, value)
 	}
 	query := "INSERT INTO %s(%s)VALUES(%s)"
-	query = fmt.Sprintf(query, table.Name, strings.Join(cols, ColSepWide), strings.Join(placeholders, ColSepWide))
+	query = fmt.Sprintf(query, table.Name, strings.Join(cols, sqlbuilder.ColSep), strings.Join(placeholders, sqlbuilder.ColSep))
 	rst, err := db.Exec(query, args...)
 	return NewResult(Context{StateInsert, db, table, rec, Field{}}, rst), err
 }
@@ -181,7 +173,7 @@ func (table *Table) DefaultUpdate(db DB, record Map) (Result, error) {
 		return nil, fmt.Errorf("Table %s: not enough columns to update", table.Name)
 	}
 	query := "UPDATE %s SET %s WHERE %s"
-	query = fmt.Sprintf(query, table.Name, strings.Join(sets, ColSepWide), whereQuery)
+	query = fmt.Sprintf(query, table.Name, strings.Join(sets, sqlbuilder.ColSep), whereQuery)
 	rst, err := db.Exec(query, append(args, whereArgs...)...)
 	return NewResult(Context{StateUpdate, db, table, rec, Field{}}, rst), err
 }
