@@ -67,7 +67,7 @@ func (r result) Record(refresh bool) (Map, error) {
 		}
 		record[table.keys[table.autoInc]] = id
 	}
-	query, args, err := table.WherePrimaryKey(record)
+	query, args, err := table.WherePrimaryKey(false, false, record)
 	if err != nil {
 		return nil, err
 	}

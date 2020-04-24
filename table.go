@@ -138,7 +138,7 @@ func (table *Table) Update(db DB, record Map) (Result, error) {
 
 // DefaultUpdate is default Update handler.
 func (table *Table) DefaultUpdate(db DB, record Map) (Result, error) {
-	whereQuery, whereArgs, err := table.WherePrimaryKey(record)
+	whereQuery, whereArgs, err := table.WherePrimaryKey(false, false, record)
 	if err != nil {
 		return nil, err
 	}
@@ -208,7 +208,7 @@ func (table *Table) Delete(db DB, record Map) (Result, error) {
 
 // DefaultDelete is default Delete handler.
 func (table *Table) DefaultDelete(db DB, record Map) (Result, error) {
-	query, args, err := table.WherePrimaryKey(record)
+	query, args, err := table.WherePrimaryKey(false, false, record)
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +219,7 @@ func (table *Table) DefaultDelete(db DB, record Map) (Result, error) {
 }
 
 // WherePrimaryKey get where sql by primary key in record.
-func (table *Table) WherePrimaryKey(record Map) (query string, args []interface{}, err error) {
+func (table *Table) WherePrimaryKey(hasTableName, reversed bool, record Map) (condition string, args []interface{}, err error) {
 	if err = table.Open(); err != nil {
 		return
 	}
@@ -227,7 +227,11 @@ func (table *Table) WherePrimaryKey(record Map) (query string, args []interface{
 		err = fmt.Errorf("The table %s does not define primary key", table.Name)
 		return
 	}
-	var condition []string
+	operator := "="
+	if reversed {
+		operator = "<>"
+	}
+	var conditions []string
 	for _, i := range table.primaryKey {
 		key := table.keys[i]
 		value, exist := record[key]
@@ -235,10 +239,14 @@ func (table *Table) WherePrimaryKey(record Map) (query string, args []interface{
 			err = fmt.Errorf("Primary key %s is required in record", key)
 			return
 		}
-		condition = append(condition, fmt.Sprintf("%s = %s", table.Fields[i].Name, Placeholder))
+		fieldName := table.Fields[i].Name
+		if hasTableName {
+			fieldName = table.Name + "." + fieldName
+		}
+		conditions = append(conditions, fmt.Sprintf("%s %s %s", fieldName, operator, Placeholder))
 		args = append(args, value)
 	}
-	query = strings.Join(condition, " AND ")
+	condition = strings.Join(conditions, " AND ")
 	return
 }
 
@@ -288,11 +296,10 @@ func (table *Table) CountValue(db DB, field Field, value interface{}, where stri
 // CountRecord query SELECT COUNT(*) by record.
 func (table *Table) CountRecord(db DB, field Field, record Map, excludeSelf bool, where string, args ...interface{}) (int64, error) {
 	if excludeSelf {
-		queryPK, argsPK, err := table.WherePrimaryKey(record)
+		queryPK, argsPK, err := table.WherePrimaryKey(false, true, record)
 		if err != nil {
 			return 0, err
 		}
-		queryPK = strings.Replace(queryPK, "=", "<>", -1)
 		if where == "" {
 			where = queryPK
 		} else {
