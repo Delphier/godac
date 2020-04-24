@@ -1,6 +1,9 @@
 package godac
 
-import "fmt"
+import (
+	"fmt"
+	"godac/sqlbuilder"
+)
 
 // CheckerFunc is used for some checks.
 type CheckerFunc func(Context) error
@@ -8,7 +11,7 @@ type CheckerFunc func(Context) error
 // Exists return a checker used for checking field value is used in the other table.
 func Exists(field Field, table *Table) CheckerFunc {
 	return func(c Context) error {
-		count, err := table.CountRecord(c.DB, field, c.Record, false, "")
+		count, err := table.CountRecord(c.DB, field, c.Record, false, sqlbuilder.Select())
 		if err != nil {
 			return err
 		}

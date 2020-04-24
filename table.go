@@ -251,15 +251,11 @@ func (table *Table) WherePrimaryKey(hasTableName, reversed bool, record Map) (co
 }
 
 // Count query SELECT COUNT(*).
-func (table *Table) Count(db DB, where string, args ...interface{}) (int64, error) {
+func (table *Table) Count(db DB, selector sqlbuilder.Selector, args ...interface{}) (int64, error) {
 	if err := table.Open(); err != nil {
 		return 0, err
 	}
-	query := fmt.Sprintf("SELECT COUNT(*) FROM %s", table.Name)
-	if where != "" {
-		query += " WHERE " + where
-	}
-
+	query := selector.Columns("COUNT(*)").From(table.Name).SQL()
 	row := db.QueryRow(query, args...)
 	var count int64
 	if err := row.Scan(&count); err != nil {
@@ -269,46 +265,37 @@ func (table *Table) Count(db DB, where string, args ...interface{}) (int64, erro
 }
 
 // CountValue query SELECT COUNT(*) by column value. used for detect duplicate value.
-func (table *Table) CountValue(db DB, field Field, value interface{}, where string, args ...interface{}) (int64, error) {
+func (table *Table) CountValue(db DB, field Field, value interface{}, selector sqlbuilder.Selector, args ...interface{}) (int64, error) {
 	column := field.Name
 	condition := "= ?"
 	if value == nil {
 		condition = "IS NULL"
 	} else {
-		switch value.(type) {
+		switch v := value.(type) {
 		case string:
 			column = fmt.Sprintf("TRIM(%s)", column)
-			value = strings.TrimSpace(value.(string))
+			value = strings.TrimSpace(v)
 		default:
 		}
-		args = append([]interface{}{value}, args...)
+		args = append(args, value)
 	}
 	condition = column + " " + condition
-	if where == "" {
-		where = condition
-	} else {
-		where = condition + " AND " + where
-	}
-
-	return table.Count(db, where, args...)
+	selector = selector.WhereAnd(condition)
+	return table.Count(db, selector, args...)
 }
 
 // CountRecord query SELECT COUNT(*) by record.
-func (table *Table) CountRecord(db DB, field Field, record Map, excludeSelf bool, where string, args ...interface{}) (int64, error) {
+func (table *Table) CountRecord(db DB, field Field, record Map, excludeSelf bool, selector sqlbuilder.Selector, args ...interface{}) (int64, error) {
 	if excludeSelf {
 		queryPK, argsPK, err := table.WherePrimaryKey(false, true, record)
 		if err != nil {
 			return 0, err
 		}
-		if where == "" {
-			where = queryPK
-		} else {
-			where = queryPK + " AND " + where
-		}
-		args = append(argsPK, args...)
+		selector = selector.WhereAnd(queryPK)
+		args = append(args, argsPK...)
 	}
 	if err := table.Open(); err != nil {
 		return 0, err
 	}
-	return table.CountValue(db, field, record[table.keysMap[field.Name]], where, args...)
+	return table.CountValue(db, field, record[table.keysMap[field.Name]], selector, args...)
 }

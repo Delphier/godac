@@ -1,6 +1,10 @@
 package godac
 
-import validation "github.com/go-ozzo/ozzo-validation/v4"
+import (
+	"godac/sqlbuilder"
+
+	validation "github.com/go-ozzo/ozzo-validation/v4"
+)
 
 // Unique is a validation rule that checks if a value is unique in table.
 var Unique = &uniqueRule{}
@@ -25,9 +29,9 @@ func (rule *uniqueRule) SetContext(c Context) {
 func (rule *uniqueRule) Validate(value interface{}) (err error) {
 	var count int64
 	if rule.context.State == StateInsert {
-		count, err = rule.context.Table.CountValue(rule.context.DB, rule.context.Field, value, "")
+		count, err = rule.context.Table.CountValue(rule.context.DB, rule.context.Field, value, sqlbuilder.Select())
 	} else {
-		count, err = rule.context.Table.CountRecord(rule.context.DB, rule.context.Field, rule.context.Record, true, "")
+		count, err = rule.context.Table.CountRecord(rule.context.DB, rule.context.Field, rule.context.Record, true, sqlbuilder.Select())
 	}
 	if err != nil {
 		return
