@@ -90,3 +90,11 @@ func (r result) RowsAffected() (int64, error) {
 
 // ActionFunc is customize func for Insert/Update/Delete
 type ActionFunc func(Context) (Result, error)
+
+// DataSet represents Table or Query.
+type DataSet interface {
+	Select(db DB, selector sqlbuilder.Selector, args ...interface{}) ([]Map, error)
+	Insert(db DB, record Map) (Result, error)
+	Update(db DB, record Map) (Result, error)
+	Delete(db DB, record Map) (Result, error)
+}
