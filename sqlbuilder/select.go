@@ -5,15 +5,32 @@ import "strings"
 // ColSep is column names separator.
 const ColSep = ", "
 
+// Select create a SELECT SQL builder.
+func Select() Selector {
+	return Selector{}
+}
+
 // Selector is a sql builder for SELECT.
 type Selector struct {
 	columns              []string
 	from, where, orderBy string
 }
 
-// Select create a SELECT SQL builder.
-func Select() Selector {
-	return Selector{}
+// Merge source to target
+func (sql Selector) Merge(src Selector) Selector {
+	if len(src.columns) > 0 {
+		sql.columns = src.columns
+	}
+	if src.from != "" {
+		sql.from = src.from
+	}
+	if src.where != "" {
+		sql.where = src.where
+	}
+	if src.orderBy != "" {
+		sql.orderBy = src.orderBy
+	}
+	return sql
 }
 
 // Columns set columns.
