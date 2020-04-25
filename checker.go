@@ -33,6 +33,6 @@ func Deleter(checkers ...CheckerFunc) ActionFunc {
 				return nil, err
 			}
 		}
-		return c.Table.DefaultDelete(c.DB, c.Record)
+		return c.Table.DefaultDelete(c)
 	}
 }
