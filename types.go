@@ -28,11 +28,12 @@ const (
 
 // Context contains the environment information on Insert/Update/Delete.
 type Context struct {
-	State  State
-	DB     DB
-	Table  *Table
-	Record Map
-	Field  Field
+	State   State
+	DB      DB
+	DataSet DataSet
+	Table   *Table
+	Record  Map
+	Field   Field
 }
 
 // Result is an extension of sql.Result.

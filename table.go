@@ -86,7 +86,7 @@ func (table *Table) execAction(c Context, onAction, defaultAction ActionFunc) (R
 
 // Insert execute sql INSERT INTO.
 func (table *Table) Insert(db DB, record Map) (Result, error) {
-	c := Context{StateInsert, db, table, record, Field{}}
+	c := Context{StateInsert, db, table, table, record, Field{}}
 	return table.execAction(c, table.OnInsert, table.DefaultInsert)
 }
 
@@ -117,7 +117,7 @@ func (table *Table) DefaultInsert(c Context) (Result, error) {
 			value = field.GetDefault()
 		}
 		rec[table.keys[i]] = value
-		if err := validateField(Context{StateInsert, c.DB, table, rec, field}, value); err != nil {
+		if err := validateField(Context{StateInsert, c.DB, c.DataSet, table, rec, field}, value); err != nil {
 			return nil, err
 		}
 		cols = append(cols, field.Name)
@@ -127,12 +127,12 @@ func (table *Table) DefaultInsert(c Context) (Result, error) {
 	query := "INSERT INTO %s(%s)VALUES(%s)"
 	query = fmt.Sprintf(query, table.Name, strings.Join(cols, sqlbuilder.ColSep), strings.Join(placeholders, sqlbuilder.ColSep))
 	rst, err := c.DB.Exec(query, args...)
-	return NewResult(Context{StateInsert, c.DB, table, rec, Field{}}, rst), err
+	return NewResult(Context{StateInsert, c.DB, c.DataSet, table, rec, Field{}}, rst), err
 }
 
 // Update execute sql UPDATE.
 func (table *Table) Update(db DB, record Map) (Result, error) {
-	c := Context{StateUpdate, db, table, record, Field{}}
+	c := Context{StateUpdate, db, table, table, record, Field{}}
 	return table.execAction(c, table.OnUpdate, table.DefaultUpdate)
 }
 
@@ -163,7 +163,7 @@ func (table *Table) DefaultUpdate(c Context) (Result, error) {
 			value = field.GetOnUpdate()
 		}
 		rec[table.keys[i]] = value
-		if err := validateField(Context{StateUpdate, c.DB, table, rec, field}, value); err != nil {
+		if err := validateField(Context{StateUpdate, c.DB, c.DataSet, table, rec, field}, value); err != nil {
 			return nil, err
 		}
 		sets = append(sets, fmt.Sprintf("%s = %s", field.Name, Placeholder))
@@ -175,7 +175,7 @@ func (table *Table) DefaultUpdate(c Context) (Result, error) {
 	query := "UPDATE %s SET %s WHERE %s"
 	query = fmt.Sprintf(query, table.Name, strings.Join(sets, sqlbuilder.ColSep), whereQuery)
 	rst, err := c.DB.Exec(query, append(args, whereArgs...)...)
-	return NewResult(Context{StateUpdate, c.DB, table, rec, Field{}}, rst), err
+	return NewResult(Context{StateUpdate, c.DB, c.DataSet, table, rec, Field{}}, rst), err
 }
 
 // Validate field rules.
@@ -197,7 +197,7 @@ func validateField(c Context, value interface{}) error {
 
 // Delete execute sql DELETE;
 func (table *Table) Delete(db DB, record Map) (Result, error) {
-	c := Context{StateDelete, db, table, record, Field{}}
+	c := Context{StateDelete, db, table, table, record, Field{}}
 	return table.execAction(c, table.OnDelete, table.DefaultDelete)
 }
 
@@ -210,7 +210,7 @@ func (table *Table) DefaultDelete(c Context) (Result, error) {
 
 	query = fmt.Sprintf("DELETE FROM %s WHERE %s", table.Name, query)
 	rst, err := c.DB.Exec(query, args...)
-	return NewResult(Context{StateDelete, c.DB, table, c.Record, Field{}}, rst), err
+	return NewResult(Context{StateDelete, c.DB, c.DataSet, table, c.Record, Field{}}, rst), err
 }
 
 // WherePrimaryKey get where sql by primary key in record.

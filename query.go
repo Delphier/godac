@@ -66,7 +66,7 @@ func (query *Query) execDefaultAction(c Context) (Result, error) {
 	if table == nil {
 		return nil, errors.New("Query.Tables undefined")
 	}
-	c2 := Context{c.State, c.DB, table, c.Record, c.Field}
+	c2 := Context{c.State, c.DB, query, table, c.Record, c.Field}
 	switch c.State {
 	case StateInsert:
 		return table.execAction(c2, table.OnInsert, table.DefaultInsert)
@@ -81,7 +81,7 @@ func (query *Query) execDefaultAction(c Context) (Result, error) {
 
 // Insert execute sql INSERT INTO.
 func (query *Query) Insert(db DB, record Map) (Result, error) {
-	c := Context{StateInsert, db, nil, record, Field{}}
+	c := Context{StateInsert, db, query, nil, record, Field{}}
 	return query.execAction(c, query.OnInsert, query.DefaultInsert)
 }
 
@@ -92,7 +92,7 @@ func (query *Query) DefaultInsert(c Context) (Result, error) {
 
 // Update execute sql UPDATE.
 func (query *Query) Update(db DB, record Map) (Result, error) {
-	c := Context{StateUpdate, db, nil, record, Field{}}
+	c := Context{StateUpdate, db, query, nil, record, Field{}}
 	return query.execAction(c, query.OnUpdate, query.DefaultUpdate)
 }
 
@@ -103,7 +103,7 @@ func (query *Query) DefaultUpdate(c Context) (Result, error) {
 
 // Delete execute sql DELETE;
 func (query *Query) Delete(db DB, record Map) (Result, error) {
-	c := Context{StateDelete, db, nil, record, Field{}}
+	c := Context{StateDelete, db, query, nil, record, Field{}}
 	return query.execAction(c, query.OnDelete, query.DefaultDelete)
 }
 
