@@ -15,7 +15,7 @@ func Select() Selector {
 
 // Selector is a sql builder for SELECT.
 type Selector struct {
-	columns              []string
+	columns, joins       []string
 	from, where, orderBy string
 	limit, offset        *int64
 }
@@ -24,6 +24,9 @@ type Selector struct {
 func (sql Selector) Merge(src Selector) Selector {
 	if len(src.columns) > 0 {
 		sql.columns = src.columns
+	}
+	if len(src.joins) > 0 {
+		sql.joins = src.joins
 	}
 	if src.from != "" {
 		sql.from = src.from
@@ -52,6 +55,12 @@ func (sql Selector) Columns(columns ...string) Selector {
 // From set FROM clause.
 func (sql Selector) From(from string) Selector {
 	sql.from = from
+	return sql
+}
+
+// LeftJoin set LEFT JOIN clause.
+func (sql Selector) LeftJoin(joined, on string) Selector {
+	sql.joins = append(sql.joins, fmt.Sprintf("LEFT JOIN %s ON %s", joined, on))
 	return sql
 }
 
@@ -100,6 +109,9 @@ func (sql Selector) SQL() string {
 	s := "SELECT "
 	s = iifAdd(s, len(sql.columns) == 0, "*", strings.Join(sql.columns, ColSep))
 	s = iifAdd(s, sql.from != "", " FROM "+sql.from, "")
+	if sql.from != "" && len(sql.joins) > 0 {
+		s += " " + strings.Join(sql.joins, " ")
+	}
 	s = iifAdd(s, sql.where != "", " WHERE "+sql.where, "")
 	s = iifAdd(s, sql.orderBy != "", " ORDER BY "+sql.orderBy, "")
 	if sql.limit != nil {
