@@ -91,7 +91,7 @@ func makeScanDest(colTypes []*sql.ColumnType) []interface{} {
 			dest[i] = new(sql.NullFloat64)
 		case "BOOL", "BOOLEAN":
 			dest[i] = new(sql.NullBool)
-		case "VARCHAR", "CHAR", "TEXT", "DECIMAL",
+		case "VARCHAR", "CHAR", "TEXT", "JSON", "DECIMAL",
 			"DATETIME", "DATE", "TIME":
 			dest[i] = new(sql.NullString)
 		default:
